@@ -1,0 +1,366 @@
+{% extends 'index.html' %}
+{% block scripthead %}
+
+<script>
+    response_code = parseInt("{{response_code}}")
+    response_message = "{{response_message}}"
+    {% if response_code == 200 %}
+    console.log({{response_data|tojson}})
+    // document.location = "/home"
+    alert(`Lead Added \n` + `{{ response_data| tojson}}`)
+    {% endif %}
+    {% if response_code == 4003 %}
+    alert(`Validation Failed - Please recheck submitted data\n` + `{{ response_data| tojson}}`)
+    console.log({{ response_data| tojson}})
+    {% elif response_code != 200 %}
+    // alert(`Error \n` + `{{ response_message}}`)
+    {% endif %}
+</script>
+{% endblock %}
+{% block content %}
+
+
+
+
+
+<!-- ============================================================== -->
+<!-- Start right Content here -->
+<!-- ============================================================== -->
+<div class="content-page">
+    <!-- Start content -->
+    <div class="content">
+        <div class="container">
+
+
+            <div class="row">
+                <div class="col-xs-12">
+                    <div class="page-title-box">
+                        <h4 class="page-title">Add Client</h4>
+                        <div class="clearfix"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- end row -->
+
+
+            <div class="row">
+                <div class="col-sm-12">
+                    <form id="addLeadForm" class="form-horizontal">
+                    <div class="card-box">
+                        <div class="row">
+                            <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label">Name*</label>
+                                        <div class="col-md-10">
+                                            <input type="text" class="form-control" name="first_name"
+                                                placeholder="First Name" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label">CNIC Number</label>
+                                        <div class="col-md-10">
+                                            <input type="text" class="form-control" name="nic" placeholder="NIC">
+                                        </div>
+                                    </div>
+                                    <div id="phone-section">
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label">Phone Number</label>
+                                        <div class="col-md-10">
+                                            <input type="text" class="form-control" name="phone_number"
+                                                placeholder="Phone Number">
+                                        </div>
+                                    </div>
+                                </div>
+                                    <div class="form-group">
+                                        <a href="#" id="addbtn">
+                                        <i class="mdi mdi-plus-circle-outline"></i></a>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label">Email</label>
+                                        <div class="col-md-10">
+                                            <input type="email" class="form-control" name="email_address"
+                                                placeholder="Email">
+                                        </div>
+                                    </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label">Address</label>
+                                        <div class="col-md-10">
+                                            <input type="text" class="form-control" name="address"
+                                                placeholder="Address">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label">City*</label>
+                                        <div class="col-md-10">
+                                            <input type="text" class="form-control" name="city" placeholder="City" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label">Country*</label>
+                                        <div class="col-md-10">
+                                            <input type="text" class="form-control" name="country"
+                                                placeholder="Country" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="col-sm-2 control-label" name="client_categorys">Category*</label>
+                                        <div class="col-sm-10">
+                                            <select class="form-control" name="client_category" title="client_category" required>
+                                                <option value=""></option>
+                                                <option value="Investor">Investor</option>
+                                                <option value="User">User</option>
+                                                <option value="Agent">Agent</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="col-sm-2 control-label">Gender*</label>
+                                        <div class="col-sm-10">
+                                            <select class="form-control" required name="gender" title="gender" required>
+                                                <option value=""></option>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="card-box">
+                        <div class="row">
+                            <h4 class="page-title">Current Task</h4>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Type *</label>
+                                    <div class="col-sm-10">
+                                        <select class="form-control" required name="type" title="type">
+                                            <option value=""></option>
+                                            <option value="Meeting">Meeting</option>
+                                            <option value="Call">Call</option>
+                                            <option value="Email">Email</option>
+                                            <option value="Sale">Sale</option>
+                                            <option value="Acquisition">Acquisition</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Sub Type *</label>
+                                    <div class="col-sm-10">
+                                        <select class="form-control" required name="sub_type" title="sub_type">
+                                            <option value=""></option>
+                                            <option value="SMS">SMS</option>
+                                            <option value="Contacted_client">Contacted Client</option>
+                                            <option value="Call_attempt">Call Attempt</option>
+                                            <option value="Followed_up">Followed Up</option>
+                                            <option value="Whatsapp_call">Whatsapp call</option>
+                                            <option value="Whatsapp_message">Whatsapp Message</option>
+                                            <option value="Meeting_Confirmed">Meeting Confirmed</option>
+                                            <option value="Meeting_Confirmed">Meeting Done</option>
+                                            <option value="Meeting_cancelled">Meeting Cancelled</option>
+                                            <option value="Meeting_postponed">Meeting Postponed</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Level*</label>
+                                    <div class="col-sm-10">
+                                        <select class="form-control" required name="lead_level" title="lead_level">
+                                            <option value=""></option>
+                                            <option value="AtomBomb">Very Hot</option>
+                                            <option value="Hot">Hot</option>
+                                            <option value="Moderate">Moderate</option>
+                                            <option value="Cold">Cold</option>
+                                            <option value="SubZero">Very Cold</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Status*</label>
+                                    <div class="col-sm-10">
+                                        <select class="form-control" required title="lead_status"
+                                            name="lead_status">
+                                            <option value=""></option>
+                                            <option value="Interested">Interested</option>
+                                            <option value="Not Interested">Not Interested</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Task Completion Date</label>
+                                    <div class="col-sm-10">
+                                            <div class="radio">
+                                                <input type="radio" name="completion_date" id="radio" value="" checked>
+                                                <label for="radio" id="today">
+                                                    Today: 
+                                                </label>
+                                            </div>
+                                            <div class="radio">
+                                                <input type="radio" name="completion_date" id="radio1" value="">
+                                                <label for="radio1" id="yesterday">
+                                                    Yesterday: 
+                                                </label>
+                                            </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Comment*</label>
+                                    <div class="col-sm-10">
+                                        <textarea class="form-control" required title="comment"
+                                            name="comment"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <h4 class="page-title">Next Follow up</h4>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="col-sm-2 control-label">Next Task *</label>
+                                        <div class="col-sm-10">
+                                            <select class="form-control" required name="next_task"
+                                                title="Next Task">
+                                                <option value=""></option>
+                                                <option value="DoNothing">Do Nothing</option>
+                                                <option value="ContactClient">Contact Client</option>
+                                                <option value="FollowUp">Follow Up</option>
+                                                <option value="ReceiveTokenPayment">Receive Token Payment</option>
+                                                <option value="MeetClient">Meet Client</option>
+                                                <option value="ArrangeMeeting">Arrange Meeting</option>
+                                                <option value="ReceivePartialDownPayment">Receive Partial Down
+                                                    Payment</option>
+                                                <option value="ReceiveCompleteDownPayment">Receive Complete Down
+                                                    Payment</option>
+                                                <option value="Closed(Won)">Closed (Won)</option>
+                                                <option value="SignSaleAgreement">Sign Sale Agreement</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="col-sm-2 control-label">Project</label>
+                                        <div class="col-sm-10">
+                                            <div class="col-sm-10">
+                                                <input type="text" class="form-control"
+                                                    title="Project" name="next_project" value="" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="col-sm-2 control-label">Deadline</label>
+                                        <div class="col-sm-10">
+                                            <input type="text" class="form-control datetime-picker" required
+                                                title="next" name="next_deadline" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                        <input class="btn btn-default" type="submit" value="Save">
+
+                    </form>
+                </div>
+            </div>
+            <!-- end row -->
+
+
+        </div> <!-- container -->
+
+    </div> <!-- content -->
+
+
+
+</div>
+<script>
+    $(".datetime-picker").datetimepicker({
+        format: 'YYYY-MM-DD hh:mm:ss'
+    })
+
+    var d = new Date();
+    var month = d.getMonth()+1;
+    var day = d.getDate();
+    var hour = d.getHours();
+    var minute = d.getMinutes();
+    var second = d.getSeconds();
+
+    var output = d.getFullYear() + '-' +
+        ((''+month).length<2 ? '0' : '') + month + '-' +
+        ((''+day).length<2 ? '0' : '') + day + ' ' +
+        ((''+hour).length<2 ? '0' :'') + hour + ':' +
+        ((''+minute).length<2 ? '0' :'') + minute + ':' +
+        ((''+second).length<2 ? '0' :'') + second;
+        
+        $("#today").append(output);
+        $("#radio").attr('value', output);
+        var day = d.getDate()-1;
+
+        var output = d.getFullYear() + '-' +
+            ((''+month).length<2 ? '0' : '') + month + '-' +
+            ((''+day).length<2 ? '0' : '') + day + ' ' +
+            ((''+hour).length<2 ? '0' :'') + hour + ':' +
+            ((''+minute).length<2 ? '0' :'') + minute + ':' +
+            ((''+second).length<2 ? '0' :'') + second;
+        
+    $("#yesterday").append(output);
+    $("#radio1").attr('value', output);
+
+    $('#addbtn').click(function () {
+        $('#phone-section').append(`                                   
+            <div class="form-group">
+            <label class="col-md-2 control-label">Phone Number</label>
+            <div class="col-md-10">
+                <input type="text" class="form-control" name="phone_number" placeholder="Phone Number">
+            </div>
+            </div>`)
+    });
+    const addLeadFormDOM = $("#addLeadForm")
+    addLeadFormDOM.submit(function (event) {
+        event.preventDefault();
+        let formData = {}
+        addLeadFormDOM.serializeArray().forEach(({ name, value }) => name !== "phone_number" ? formData[name] = value : formData[name] = [...(formData[name] || [] ), value] )
+
+        console.log(formData,"formData")
+        $.ajax("/api/leads/create", {
+        method: "POST",
+        data: JSON.stringify(formData),
+        contentType: "application/json",
+        success: function (data) {
+            console.log(data, "data")
+            if (data.response_code == 200) {
+                alert('Lead Added Successfully')
+                setTimeout(function () {// wait for 5 secs(2)
+                location.reload(); // then reload the page.(3)
+                }, 300);
+            }
+            else {
+                alert(data.response_message);
+            }
+        },
+        error: function (error) {
+            console.log(error, "error")
+
+        }
+        })
+    })
+        
+</script>
+{% endblock %}

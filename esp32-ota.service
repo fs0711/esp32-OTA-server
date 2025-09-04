@@ -1,0 +1,14 @@
+[Unit]
+Description=Gunicorn instance to serve munas IOT
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/home/munas-iot-backend
+Environment="PATH=/home/munas-iot-backend/env/bin"
+ExecStart=/home/munas-iot-backend/env/bin/gunicorn --config gunicorn.conf.py wsgi:app
+
+
+[Install]
+WantedBy=multi-user.target

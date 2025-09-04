@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A fully featured admin theme which can be used to build CRM, CMS, etc.">
+    <meta name="author" content="Coderthemes">
+
+    <!-- App favicon -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='images/site.webmanifest') }}">
+
+    <!-- App title -->
+    <title>Munas</title>
+
+    <!-- App css -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/core.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/components.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/pages.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/menu.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/responsive.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='/js/modernizr.min.js') }}" rel="stylesheet" type="text/css" />
+
+    <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+
+
+
+</head>
+
+<body class="login-body">
+    <div class="body-image" style="background-image:url('{{url_for('static', filename='images/background.png')}}')">
+        <div class="center">
+            <div class="logo">
+                <img src="{{url_for('static', filename='images/logo-low.png')}}" class="img_main">
+            </div>
+            <form action="" method="post">
+                <div class="txt_field">
+                    <input class="form-control log-col" type="email" name="email_address" required>
+                    <span></span>
+                    <label>Email</label>
+                </div>
+                <div class="txt_field">
+                    <input class="form-control log-col" type="password" name="password" required >
+                    <span></span>
+                    <label>Password</label>
+                </div>
+                <div class="log">
+                    <input class="btn btn-success login waves-effect waves-light" type="submit" value="Login">
+                </div>
+                <div class="clearfix"></div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- jQuery  -->
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+    <script src="assets/js/detect.js"></script>
+    <script src="assets/js/fastclick.js"></script>
+    <script src="assets/js/jquery.blockUI.js"></script>
+    <script src="assets/js/waves.js"></script>
+    <script src="assets/js/jquery.slimscroll.js"></script>
+    <script src="assets/js/jquery.scrollTo.min.js"></script>
+
+    <!-- App js -->
+    <script src="assets/js/jquery.core.js"></script>
+    <script src="assets/js/jquery.app.js"></script>
+
+    <script>
+        response_code = parseInt("{{response_code}}")
+        response_message = "{{response_message}}"
+        {% if response_code == 200 %}
+        sessionStorage.setItem("TokenObj", '{{response_data|tojson}}')
+        localStorage.setItem("TokenObj", '{{response_data|tojson}}')
+        document.cookie = "access_token={{response_data.access_token}}"
+        document.location = "/home"
+        {% else %}
+        console.log({{ response_data }})
+        {% endif %}
+    </script>
+
+</body>
+
+</html>

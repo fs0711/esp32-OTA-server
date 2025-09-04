@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A fully featured admin theme which can be used to build CRM, CMS, etc.">
+    <meta name="author" content="Coderthemes">
+
+    <!-- App favicon -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='images/site.webmanifest') }}">
+    <!-- App title -->
+    <title>Munas</title>
+
+    <!--Morris Chart CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='plugins/morris/morris.css') }}">
+
+    <!-- App css -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/core.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/components.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/pages.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/menu.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/responsive.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='js/modernizr.min.js') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='css/intlTelInput.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for('static', filename='plugins/switchery/switchery.min.css') }}" rel="stylesheet" type="text/css" />
+    <!-- jQuery  -->
+
+    </script>
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/intlTelInput.js') }}"></script>
+
+
+    <script src="{{ url_for('static', filename='plugins/moment/moment.js') }}"></script>
+    <link href="{{ url_for('static', filename='plugins/bootstrap-datetimepicker/bootstrap-datetimepicker.min.css') }}"
+        rel=”stylesheet”>
+    <script
+        src="{{ url_for('static', filename='plugins/bootstrap-datetimepicker/bootstrap-datetimepicker.min.js') }}"> </script>
+
+    <script>
+        TokenObj = JSON.parse(sessionStorage.getItem('TokenObj'))
+        TokenObj2 = JSON.parse(localStorage.getItem('TokenObj'))
+    </script>
+    {{ moment.include_moment() }}
+    <script>
+        response_code = parseInt("{{response_code}}")
+
+        {% if response_code == 401 %}
+        document.location = "/"
+        {% endif %}
+        {% if response_code == 5001 %}
+        document.location = "/"
+        {% endif %}
+    </script>
+    {% block scripthead %}
+    {% endblock %}
+</head>
+
+
+<body class="fixed-left">
+
+    <!-- Begin page -->
+    <div id="wrapper">
+
+        <!-- Top Bar Start -->
+        <div class="topbar">
+
+            <!-- LOGO -->
+            <div class="topbar-left">
+                <!-- <a href="index.html" class="logo"><span>Zir<span>cos</span></span><i class="mdi mdi-layers"></i></a> -->
+                <!-- Image logo -->
+                <a href="index.html" class="logo">
+                    <span>
+                        <img src="{{url_for('static', filename='images/logo-low.png')}}" alt="" height="60">
+                    </span>
+                    <i>
+                        <img src="{{url_for('static', filename='images/logo-low.png')}}" alt="" height="28">
+                    </i>
+                </a>
+            </div>
+
+            <!-- Button mobile view to collapse sidebar menu -->
+            <div class="navbar navbar-default" role="navigation">
+                <div class="container">
+
+                    <!-- Navbar-left -->
+                    <ul class="nav navbar-nav navbar-left">
+                        <li>
+                            <button class="button-menu-mobile open-left waves-effect">
+                                <i class="mdi mdi-menu"></i>
+                            </button>
+                    </ul>
+
+                    <!-- Right(Notification) -->
+                    <ul class="nav navbar-nav navbar-right">
+                        <li>
+                            <a href="#" class="right-menu-item dropdown-toggle" data-toggle="dropdown">
+                                <i class=" mdi mdi-bell-outline"></i>
+                                <span class="badge up bg-success"></span>
+                            </a>
+
+                        </li>
+
+                        <li>
+                            <a href="#" class="right-menu-item dropdown-toggle" data-toggle="dropdown">
+                                <i class="mdi mdi-gmail"></i>
+                                <span class="badge up bg-danger"></span>
+                            </a>
+                        </li>
+
+                        <li class="dropdown user-box">
+                            <a href="" class="right-menu-item dropdown-toggle waves-effect" data-toggle="dropdown"
+                                aria-expanded="true">
+                                <i class="mdi mdi-account"></i>
+                            </a>
+
+                            <ul
+                                class="dropdown-menu dropdown-menu-right arrow-dropdown-menu arrow-menu-right user-list notify-list">
+                                <li id="user-name-h">
+                                </li>
+                                <li><a href="/change_password"><i class="mdi mdi-key-change m-r-5"></i> Change Password </a></li>
+                                <li><a href="/logout"><i class="ti-power-off m-r-5"></i> Logout</a></li>
+                            </ul>
+                        </li>
+
+                    </ul> <!-- end navbar-right -->
+
+                </div><!-- end container -->
+            </div><!-- end navbar -->
+        </div>
+        <!-- Top Bar End -->
+
+
+        <!-- ========== Left Sidebar Start ========== -->
+        <div class="left side-menu">
+            <div class="sidebar-inner slimscrollleft">
+
+                <!--- Sidemenu -->
+                <div id="sidebar-menu">
+                    <ul id="sidebar-menu-item">
+                        <li>
+                            <a href="/home" class="waves-effect"><i class=" mdi mdi-blur"></i><span> Dashboard
+                                </span></a>
+                        </li>
+                        <!-- <li class="has_sub">
+                            <a href="javascript:void(0);" class="waves-effect"><i class="glyphicon glyphicon-send"></i>
+                                <span> Device </span> <span class="menu-arrow"></span></a>
+                            <ul class="list-unstyled" id="leads-menu">
+                                <li><a href="/api/leads/read"><i class="mdi mdi-bullseye"></i>Add Device</a></li>
+                                <li><a href="/api/leads/create"><i class="mdi mdi-bookmark-plus-outline"></i>View Device</a></li>
+                            </ul>
+                        </li>
+                        <li class="has_sub">
+                            <a href="javascript:void(0);" class="waves-effect"><i class="ti-user"></i> <span> Clients
+                                </span> <span class="menu-arrow"></span></a>
+                            <ul class="list-unstyled">
+                                <li><a href="#"><i class="mdi mdi-account-card-details"></i>View Cliets</a></li>
+                                <li><a href="#"><i class="mdi mdi-account-multiple-plus"></i>Add Client</a></li>
+                                <li><a href="#"><i class="mdi mdi-account-multiple-plus"></i>View Sites</a></li>
+                                <li><a href="#"><i class="mdi mdi-account-multiple-plus"></i>Add Sites</a></li>
+                            </ul>
+                        </li> -->
+                        <li class="has_sub">
+                            <a href="javascript:void(0);" class="waves-effect"><i class="mdi mdi-city"></i> <span>
+                                Schedule     </span> <span class="menu-arrow"></span></a>
+                            <ul class="list-unstyled">
+                                <li><a href="/api/projects/read"><i class="mdi mdi-bullseye"></i>Add Schedule</a></li>
+                                <li  id="add-projects" style="display: none;"><a href="/api/projects/create"><i class="mdi mdi-bible"></i> View Schedule</a></li>
+                            </ul>
+                        </li>
+                        <li class="has_sub">
+                            <a href="/reports" class="waves-effect"><i class="mdi mdi-city"></i> <span>Reports</span> <span class="menu-arrow"></span></a>
+                        </li>
+                        <li id="users" class="has_sub" style="display: none;">
+                            <a href="javascript:void(0);" class="waves-effect"><i class="fa fa-user"></i> <span> Users </span> <span class="menu-arrow"></span></a>
+                            <ul class="list-unstyled">
+                                <li><a href=/api/users/read>View Users</a></li>
+                                <li><a href=/api/users/create>Add User</a></li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </div>
+                <!-- Sidebar -->
+                <div class="clearfix"></div>
+                <!-- 
+                <div class="help-box">
+                    <h5 class="text-muted m-t-0">For Help ?</h5>
+                    <p class=""><span class="text-custom">Email:</span> <br /> shaheer@proppioneers.com</p>
+                    <p class="m-b-0"><span class="text-custom">Call:</span> <br /> (+92) 300 851 0738</p>
+                </div> -->
+
+            </div>
+            <!-- Sidebar -left -->
+
+        </div>
+        <!-- Left Sidebar End -->
+
+
+        <!-- ============================================================== -->
+        <!-- Start right Content here -->
+        <!-- ============================================================== -->
+        {% block content %}
+        {% endblock %}
+
+        <!-- ============================================================== -->
+        <!-- End Right content here -->
+        <!-- ============================================================== -->
+        <footer class="footer text-right">
+            {{moment().format('YYYY')}} © Munas
+        </footer>
+
+    </div>
+    <!-- END wrapper -->
+
+
+
+    <script>
+        var resizefunc = [];
+    </script>
+    {% block scriptfooter %}
+    {% endblock %}
+
+    <script>
+        console.log(TokenObj)
+        if (TokenObj == null) {
+            TokenObj = TokenObj2;
+            console.log(TokenObj2)
+        }
+
+        if (TokenObj.user.role.user_role_id == 1) {
+            $("#users").css("display", "block");
+                                }
+        $("#user-name-h").append('<h5>' + TokenObj.user.name + '</h5>')
+    </script>
+
+    <!-- jQuery  -->
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/detect.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/fastclick.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.blockUI.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/waves.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.slimscroll.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.scrollTo.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='plugins/switchery/switchery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='plugins/jquery-knob/jquery.knob.js') }}"></script>
+
+    <!-- Counter js  -->
+    <script src="{{ url_for('static', filename='plugins/waypoints/jquery.waypoints.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='plugins/counterup/jquery.counterup.min.js') }}"></script>
+
+    <!-- Tooltipster js -->
+    <script src="{{ url_for('static', filename='plugins/tooltipster/tooltipster.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='pages/jquery.tooltipster.js') }}"></script>
+
+    <!--Morris Chart-->
+    <script src="{{ url_for('static', filename='plugins/raphael/raphael-min.js') }}"></script>
+
+    <!-- Dashboard init -->
+    <script src="{{ url_for('static', filename='pages/jquery.dashboard.js') }}"></script>
+
+    <!-- App js -->
+    <script src="{{ url_for('static', filename='js/jquery.app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery.core.js') }}"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,88 @@
+{
+    "statuses": [
+        {
+            "id": 1,
+            "name": "active"
+        },
+        {
+            "id": 2,
+            "name": "inactive"
+        },
+        {
+            "id": 3,
+            "name": "suspended"
+        }
+    ],
+    "user_roles_and_rights": [
+        {
+            "manager": null,
+            "name": "admin",
+            "rights": [],
+            "title": "Admin User",
+            "user_role_id": 1
+        },
+        {
+            "manager": 1,
+            "name": "owner",
+            "rights": [],
+            "title": "Owner",
+            "user_role_id": 2
+        },
+        {
+            "manager": 2,
+            "name": "manager",
+            "rights": [],
+            "title": "Manager",
+            "user_role_id": 3
+        },
+        {
+            "manager": 3,
+            "name": "user",
+            "rights": [],
+            "title": "User",
+            "user_role_id": 4
+        },
+        {
+            "manager": null,
+            "name": "default",
+            "rights": [],
+            "title": "default",
+            "user_role_id": 999
+        }
+    ],
+
+    "gender": [
+        "Male",
+        "Female",
+        "Other"
+    ],
+
+    "device_types": [
+        "Energy",
+        "Flow",
+        "Automation"
+    ],
+
+    "IO_types": [
+        "Input",
+        "Output",
+        "Variable"
+    ],
+
+    "data_types": [
+        "int",
+        "str",
+        "float",
+        "bool"
+    ],
+
+    "display_types": [
+        "table",
+        "chart",
+        "knob",
+        "switcher",
+        "slider",
+        "status",
+        "Card"
+    ]
+}
