@@ -10,8 +10,8 @@ class Model(db.Document):
     created_on = db.IntField(default=common_utils.get_time())
     updated_on = db.IntField(
         default=common_utils.get_time(), onupdate=common_utils.get_time())
-    created_by = db.LazyReferenceField("User")
-    updated_by = db.LazyReferenceField("User")
+    created_by = db.LazyReferenceField(document_type="User")
+    updated_by = db.LazyReferenceField(document_type="User")
     status = db.DictField(default=constants.OBJECT_STATUS_ACTIVE)
 
     @abstractmethod
@@ -24,8 +24,8 @@ class EmbeddedModel(db.EmbeddedDocument):
     created_on = db.IntField(default=common_utils.get_time())
     updated_on = db.IntField(
         default=common_utils.get_time(), onupdate=common_utils.get_time())
-    created_by = db.ReferenceField("User")
-    updated_by = db.ReferenceField("User")
+    created_by = db.ReferenceField(document_type="User")
+    updated_by = db.ReferenceField(document_type="User")
     status = db.DictField(default=constants.OBJECT_STATUS_ACTIVE)
 
     @abstractmethod

@@ -8,7 +8,6 @@ from esp32OTA.UserManagement.models.User import User
 from esp32OTA.generic.controllers import Controller
 from esp32OTA.UserManagement.controllers.TokenController import TokenController
 from esp32OTA.generic.services.utils import constants, response_codes, response_utils, common_utils
-# from ppBackend.OrganizationsManagement.controllers import organizationcontroller
 
 
 class UserController(Controller):

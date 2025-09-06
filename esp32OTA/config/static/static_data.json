@@ -58,31 +58,8 @@
     ],
 
     "device_types": [
-        "Energy",
-        "Flow",
-        "Automation"
-    ],
-
-    "IO_types": [
-        "Input",
-        "Output",
-        "Variable"
-    ],
-
-    "data_types": [
-        "int",
-        "str",
-        "float",
-        "bool"
-    ],
-
-    "display_types": [
-        "table",
-        "chart",
-        "knob",
-        "switcher",
-        "slider",
-        "status",
-        "Card"
+        "Smart Switch type 1",
+        "Tracker"
     ]
+
 }

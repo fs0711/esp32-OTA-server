@@ -159,7 +159,6 @@ USER__GENDER = "gender"
 USER__NIC = "nic"
 USER__ROLE = "role"
 USER__MANAGER = "manager"
-USER__ORGANIZATION = "organization"
 USER__ROLE__ROLE_ID = "user_role_id"
 USER__ROLE__NAME = "name"
 USER__ROLE__TITLE = "title"
@@ -191,7 +190,6 @@ REQUIRED_FIELDS_LIST__USER = [
     USER__PASSWORD,
     USER__GENDER,
     USER__ROLE,
-    USER__ORGANIZATION
 ]
 
 OPTIONAL_FIELDS_LIST__USER = [
@@ -209,94 +207,6 @@ UPDATE_FIELDS_LIST__USER = list(
     set(REQUIRED_FIELDS_LIST__USER + [ID]))
 
 
-# Client Constants
-CLIENT = "client"
-CLIENT__ID = "client_id"
-CLIENT__NAME = "name"
-CLIENT__CONTACT_PERSON = "contact_person"
-CLIENT__CP_PHONE_NUMBER = "cp_phone_number"
-CLIENT__CP_EMAIL_ADDRESS = "cp_email_address"
-CLIENT__CITY = "city"
-CLIENT__ZIPCODE = "zipcode"
-CLIENT__COUNTRY = "country"
-CLIENT__ORGANIZATION = "organization"
-
-REQUIRED_FIELDS_LIST__CLIENTS = [
-    CLIENT__NAME,
-    CLIENT__COUNTRY,
-    CLIENT__CITY,
-    CLIENT__ORGANIZATION
-]
-
-OPTIONAL_FIELDS_LIST__CLIENTS = [
-    CLIENT__CONTACT_PERSON,
-    CLIENT__CP_EMAIL_ADDRESS,
-    CLIENT__CP_PHONE_NUMBER,
-    CLIENT__ZIPCODE
-]
-
-# Sites
-SITE = "site"
-SITE__ID = "site_id"
-SITE__NAME = "name"
-SITE__ADDRESS = "address"
-SITE__CITY = "city"
-SITE__COUNTRY = "country"
-SITE__ZIPCODE = "zipcode"
-SITE__CLIENT = "client"
-SITE__CONTACT_PERSON = "contact_person"
-SITE__CP_EMAIL_ADDRESS = "cp_email_address"
-SITE__CP_PHONE_NUMBER = "cp_phone_number"
-
-REQUIRED_FIELDS_LIST__SITE = [
-    SITE__NAME,
-    SITE__ADDRESS,
-    SITE__CITY,
-    SITE__COUNTRY,
-    SITE__ZIPCODE,
-    SITE__CLIENT
-]
-
-OPTIONAL_FIELDS_LIST__SITE = [
-    SITE__CONTACT_PERSON,
-    SITE__CP_EMAIL_ADDRESS,
-    SITE__CP_PHONE_NUMBER
-]
-
-
-# organization Constants
-ORGANIZATION = "organization"
-ORGANIZATION__NAME='name'
-ORGANIZATION__ADDRESS='address'
-ORGANIZATION__CITY='city'
-ORGANIZATION__COUNTRY= 'country'
-ORGANIZATION__CP_NAME= 'cp_name'
-ORGANIZATION__CP_EMAIL= 'cp_email_address'
-ORGANIZATION__CP_PHONE_NUMBER= 'cp_phone_number'
-ORGANIZATION__NTN = 'ntn'
-ORGANIZATION__CUSTOM_FIELDS = "custom_fields"
-
-
-#Organizations Record Field
-
-REQUIRED_FIELDS_LIST__ORGANIZATION = [
-    ORGANIZATION__NAME, 
-    ORGANIZATION__CP_NAME,
-    ORGANIZATION__CP_EMAIL,
-    ORGANIZATION__CP_PHONE_NUMBER,
-    ORGANIZATION__ADDRESS,
-    ORGANIZATION__CITY,
-    ORGANIZATION__COUNTRY,
-] 
-
-OPTIONAL_FIELDS_LIST__ORGANIZATION =[
-    ORGANIZATION__NTN,
-    ORGANIZATION__CUSTOM_FIELDS
-]
-
-UPDATE_FIELDS_LIST__ORGANIZATION = list(
-    set(REQUIRED_FIELDS_LIST__ORGANIZATION + [ID]))
-
 
 #Device Constants
 DEVICE = "device"
@@ -304,100 +214,19 @@ DEVICE__NAME = "name"
 DEVICE__ID = "device_id"
 DEVICE__TYPE = "type"
 DEVICE__VARIABLES = "variables"
-DEVICE__INPUTS = "inputs"
-DEVICE__OUTPUTS = "outputs"
-DEVICE__CLIENT = "client"
-DEVICE__SITE = "site"
 DEVICE__LAST_UPDATED = "last_updated"
-DEVICE__ORGANIZATION = "organization"
 DEVICE__ACCESS_TOKEN = "access_token"
 DEVICE__TYPE_LIST = static_data["device_types"]
 
 REQUIRED_FIELDS_LIST__DEVICE = [
     DEVICE__NAME,
-    DEVICE__TYPE,
-    DEVICE__CLIENT,
-    DEVICE__SITE,
-    DEVICE__ORGANIZATION
+    DEVICE__TYPE
 ]
 
 OPTIONAL_FIELDS_LIST__DEVICE = [
-    DEVICE__VARIABLES,
-    DEVICE__INPUTS,
-    DEVICE__OUTPUTS
+    DEVICE__VARIABLES
 ]
 
 UPDATE_FIELDS_LIST__DEVICE = list(
     set(REQUIRED_FIELDS_LIST__DEVICE + [ID]))
 
-
-#IO constants
-IO = "io"
-IO__NAME = "name"
-IO__ID = "io_id"
-IO__TYPE = "type"
-IO__DEVICE = "device"
-IO__DATA_TYPE = "data_type"
-IO__UNIT = "unit"
-IO__DISPLAY = "display_type"
-IO__DISPLAY_LIST = static_data["display_types"]
-IO__TYPE_LIST = static_data["IO_types"]
-IO__DATA_TYPE_LIST = static_data["data_types"]
-
-REQUIRED_FIELDS_LIST__IO = [
-    IO__NAME,
-    IO__TYPE,
-    IO__DATA_TYPE,
-    IO__DEVICE,
-]
-
-OPTIONAL_FIELDS_LIST__IO = [
-    IO__UNIT,
-    IO__DISPLAY
-]
-
-
-#IO Data constants
-IO_DATA = "io_data"
-IO_DATA__ID = "io_id"
-IO_DATA__VAL_INT = "val_int"
-IO_DATA__VAL_FLOAT = "val_float"
-IO_DATA__VAL_STR = "val_str"
-IO_DATA__VAL_BOOL = "val_bool"
-IO_DATA__DATA = "data"
-IO_DATA__TRIGGER = "trigger"
-IO_DATA__SCHEDULE = "schedule"
-
-REQUIRED_FIELDS_LIST__IO_DATA = [
-    IO_DATA__DATA
-]
-
-OPTIONAL_FIELDS_LIST__IO_DATA = [
-    ID,
-    IO_DATA__ID,
-    IO_DATA__VAL_BOOL,
-    IO_DATA__VAL_FLOAT,
-    IO_DATA__VAL_INT,
-    IO_DATA__VAL_STR
-]
-
-
-#Schedule constants
-SCHEDULE = "schedule"
-SCHEDULE__DAY = "day"
-SCHEDULE__START_TIME = "start_time"
-SCHEDULE__END_TIME = "end_time"
-SCHEDULE__DURATION = "duration"
-SCHEDULE__IO_ID = "io_id"
-
-REQUIRED_FIELDS_LIST__SCHEDULE = [
-    SCHEDULE__START_TIME,
-    SCHEDULE__IO_ID,
-    SCHEDULE__DAY,
-    SCHEDULE__DURATION
-]
-
-OPTIONAL_FIELDS_LIST__SCHEDULE = [
-    SCHEDULE__DURATION,
-    SCHEDULE__END_TIME
-]

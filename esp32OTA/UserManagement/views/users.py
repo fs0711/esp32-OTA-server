@@ -5,7 +5,6 @@ from flask import Blueprint, render_template, request, redirect
 
 # Local imports
 from esp32OTA.UserManagement.controllers.UserController import UserController
-from esp32OTA.OrganizationsManagement.controllers.organizationcontroller import OrganizationController
 from esp32OTA.generic.services.utils import constants, decorators, response_codes, response_utils, common_utils
 from esp32OTA import app
 from esp32OTA.config import config
@@ -102,7 +101,6 @@ def update_view(data):
     res["user"] = data["response_data"][0]
     res["all-users"] = [{"id":str(user[constants.ID]), "name":user[constants.USER__NAME]} for user in users]
     res["roles"] = [{"id":role["user_role_id"], "title": role["title"]} for role in roles]
-    res["organizations"] = OrganizationController.get_organizations()
     data["response_data"] = res
     return render_template("edituser.html", **data)
 

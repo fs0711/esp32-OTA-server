@@ -24,12 +24,6 @@ FIREBASE_CONFIG = {}
 
 FCM_API_KEY = ""
 
-
-# Order VAT Rate i.e 1.15 = 15%
-VAT_RATE = 1.15
-# Newly Launched Filter Data Days
-FILTER__NEW__TIME_DAYS = -30
-
 DATE_FORMAT = "%Y-%m-%d"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 FULL_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f%z"
@@ -43,17 +37,18 @@ TIME_ZONE = "Asia/Karachi"
 FRONTEND_URL = "https://iot.digtrosoft.com"
 MONGO_DB_USER = "munas"
 MONGO_DB_PASSWORD = "k9QauSm0wACivnIO"
+DATABASE_NAME = "ESP32OTA"
 
 MONGO_DB_URI = ""
 if ENVIRONMENT == "LOCAL":
-    MONGO_DB_URI = f"mongodb://localhost:27017/munasIOT"
+    MONGO_DB_URI = f"mongodb://localhost:27017/{DATABASE_NAME}"
 if ENVIRONMENT == "STAGING":
     FUNCTION_LOGGING = True
     static_data_path = os.path.join(
         current_dir_path, "static/static_data.json")
     upload_files_path = os.path.join(current_dir_path, "static/uploads")
     # MONGO_DB_URI = f"mongodb://192.168.100.8:27017/ppbackend"
-    MONGO_DB_URI = f"mongodb+srv://{MONGO_DB_USER}:{MONGO_DB_PASSWORD}@munas-california.inrzszt.mongodb.net/munasIOT"
+    MONGO_DB_URI = f"mongodb+srv://{MONGO_DB_USER}:{MONGO_DB_PASSWORD}@munas-california.inrzszt.mongodb.net/{DATABASE_NAME}"
     #     "retryWrites=true&w=majority"
 
 DEFAULT_ADMIN_NAME = "Admin"

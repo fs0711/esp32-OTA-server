@@ -4,7 +4,6 @@
 
 # Local imports
 from esp32OTA.generic import models
-from esp32OTA.OrganizationsManagement.models import Organization
 from esp32OTA.generic import db
 from esp32OTA.generic.services.utils import common_utils, constants
 
@@ -99,8 +98,7 @@ class User(models.Model):
     gender = db.StringField(required=True)
     nic = db.StringField()
     role = db.DictField(required=True)
-    manager = db.LazyReferenceField('User')
-    organization = db.LazyReferenceField('Organization')
+    manager = db.LazyReferenceField(document_type='User')
 
 
 
@@ -117,8 +115,7 @@ class User(models.Model):
             constants.USER__NIC: self[constants.USER__NIC],
             constants.USER__ROLE: self[constants.USER__ROLE],
             constants.STATUS: self[constants.STATUS],
-            constants.USER__MANAGER:{"id":str(self[constants.USER__MANAGER].fetch().id), "name":self[constants.USER__MANAGER].fetch().name} if self[constants.USER__MANAGER] else "",
-            constants.USER__ORGANIZATION: {"id":str(self[constants.USER__ORGANIZATION].fetch().id), "name":self[constants.USER__ORGANIZATION].fetch().name} if self[constants.USER__ORGANIZATION] else ""
+            constants.USER__MANAGER:{"id":str(self[constants.USER__MANAGER].fetch().id), "name":self[constants.USER__MANAGER].fetch().name} if self[constants.USER__MANAGER] else ""
         }
 
     def verify_password(self, password):

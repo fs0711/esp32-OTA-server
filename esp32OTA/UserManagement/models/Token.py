@@ -43,7 +43,7 @@ class Token(models.Model):
     }
 
     access_token = db.StringField(required=True, unique=True)
-    user = db.LazyReferenceField(User)
+    user = db.LazyReferenceField(document_type= "User")
     purpose = db.StringField(required=True)
     expiry_time = db.IntField(required=True)
     is_expired = db.BooleanField(default=False)
