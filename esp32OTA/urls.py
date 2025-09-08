@@ -9,8 +9,7 @@ from esp32OTA import app, config
 from esp32OTA.generic.services.utils import constants, decorators, response_utils, common_utils
 from esp32OTA.UserManagement.views.users import users_bp
 from esp32OTA.DeviceManagement.views.device import device_bp
-from esp32OTA.UserManagement.controllers.UserController import UserController
-from esp32OTA.DeviceManagement.controllers.DeviceController import DeviceController
+from esp32OTA.FirmwareManagement.views.firmware import firmware_bp
 
 
 @app.route("/api/static-data", methods=["GET"])
@@ -21,3 +20,4 @@ def static_data_view():
 
 app.register_blueprint(users_bp, url_prefix="/api/users")
 app.register_blueprint(device_bp, url_prefix="/api/device")
+app.register_blueprint(firmware_bp, url_prefix="/api/firmware")

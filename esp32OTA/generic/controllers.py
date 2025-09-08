@@ -233,3 +233,37 @@ class Controller:
                 return True, "", collection.objects.insert(obj_list)
             return True, "", obj_list
         return False, error_message_list, None
+
+    @classmethod
+    def db_insert_file(cls, data, collection=None, validation_rules=None,
+                         default_validation=constants.DEFAULT_VALIDATION,
+                         db_commit=True):
+        """
+        Create file in database with respect to collection
+        :param collection:
+        :param data:
+        :return:
+        """
+        if not collection:
+            collection = cls.Model
+        if not validation_rules:
+            validation_rules = collection.validation_rules()
+        is_valid = True
+        if default_validation:
+            is_valid, error_messages = validate_data(
+                data, validation_rules)
+        if is_valid:
+            data.update({
+                constants.STATUS: constants.OBJECT_STATUS_ACTIVE,
+                constants.CREATED_BY: common_utils.current_user(),
+                constants.UPDATED_BY: common_utils.current_user(),
+                constants.CREATED_ON: common_utils.get_time(),
+                constants.UPDATED_ON: common_utils.get_time(),
+            })
+            
+            obj = collection(**data)
+            if db_commit:
+                obj.save()
+            return True, "", obj
+        else:
+            return False, error_messages, None

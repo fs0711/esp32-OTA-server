@@ -35,7 +35,10 @@ def posted_files():
     Get Data
     :return:
     """
-    return request.files or {}
+    data = dict(request.form)  # form fields
+    files = {key: request.files[key] for key in request.files}  # files
+    data.update(files)
+    return data
 
 
 

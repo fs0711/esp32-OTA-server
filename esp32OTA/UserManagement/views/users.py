@@ -110,7 +110,7 @@ def update_view(data):
 @decorators.roles_allowed([constants.ROLE_ID_ADMIN])
 @decorators.keys_validator(
     [constants.ID],
-    request_form_data=False
+    request_form_data=True
 )
 def suspend_view(data):
     res = UserController.suspend_controller(data=data)
@@ -122,7 +122,7 @@ def suspend_view(data):
 @decorators.roles_allowed([constants.ROLE_ID_ADMIN])
 @decorators.keys_validator(
     [constants.ID],
-    request_form_data=False
+    request_form_data=True
 )
 def restore_view(data):
     res = UserController.restore_controller(data=data)

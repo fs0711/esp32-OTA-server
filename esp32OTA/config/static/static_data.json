@@ -60,6 +60,10 @@
     "device_types": [
         "Smart Switch type 1",
         "Tracker"
-    ]
+    ],
 
+    "update_path": [
+        "normal",
+        "immediate"
+    ]
 }

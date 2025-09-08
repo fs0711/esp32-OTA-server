@@ -18,7 +18,7 @@ device_bp = Blueprint("device_bp", __name__)
 @decorators.keys_validator(
     constants.REQUIRED_FIELDS_LIST__DEVICE,
     constants.OPTIONAL_FIELDS_LIST__DEVICE,
-    request_form_data=False
+    request_form_data=True
 )
 def create_view(data):
     return DeviceController.create_controller(data=data)

@@ -28,8 +28,6 @@ class Device(models.Model):
     name = db.StringField(required=True)
     type = db.StringField(required=True)
     variables = db.ListField(default=[])
-    inputs = db.ListField(default=[])
-    outputs = db.ListField(default=[])
     device_id = db.SequenceField(value_decorator='DV-{}'.format)
     access_token = db.StringField(required=True)
 
