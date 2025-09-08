@@ -24,24 +24,8 @@ def upload_view(data):
     return FirmwareController.upload_controller(data=data)
 
 
-@firmware_bp.route("/read", methods=["GET", "POST"])
+@firmware_bp.route("/read", methods=["GET"])
 @decorators.is_authenticated
 @decorators.keys_validator()
 def read_view(data):
-    if request.method == "POST":
-        data = request.form
     return FirmwareController.read_controller(data=data)
-
-
-@firmware_bp.route("/update", methods=["PUT"])
-@decorators.is_authenticated
-# @decorators.roles_allowed([constants.ROLE_ID_ADMIN])
-@decorators.keys_validator()
-def update_view(data):
-    return FirmwareController.update_controller(data=data)
-
-@firmware_bp.route("/search", methods=["POST", "GET"])
-@decorators.is_authenticated
-@decorators.keys_validator()
-def search_view(data):
-    return FirmwareController.search_controller(data=data)

@@ -22,6 +22,15 @@ class FirmwareController(Controller):
                 response_message=response_codes.MESSAGE_VALIDATION_FAILED,
                 response_data=error_messages
             )
+        checksum_in = data[constants.FIRMWARE__CHECKSUM]
+        checksum = common_utils.get_file_checksum(data[constants.FIRMWARE__FILE])
+        if checksum != checksum_in:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_VALIDATION_FAILED,
+                response_message=response_codes.MESSAGE_INVALID_CHECKSUM.format(checksum_in, checksum),
+                response_data=[]
+            )
+        data[constants.FIRMWARE__CHECKSUM] = checksum
         _, _, obj = cls.db_insert_file(
             data=data, default_validation=False)
         return response_utils.get_response_object(
@@ -29,40 +38,14 @@ class FirmwareController(Controller):
             response_message=response_codes.MESSAGE_SUCCESS
         )
 
-
     @classmethod
     def read_controller(cls, data):
         return response_utils.get_response_object(
             response_code=response_codes.CODE_SUCCESS,
             response_message=response_codes.MESSAGE_SUCCESS,
             response_data=[
-                obj.display() for obj in cls.db_read_records(read_filter=filter, deleted_records=False)
+                obj.display() for obj in cls.db_read_records(read_filter=data, deleted_records=False)
             ])
-
-
-    @classmethod
-    def update_controller(cls, data):
-        is_valid, error_messages, obj = cls.db_update_single_record(
-            read_filter={constants.ID: data[constants.ID]}, update_filter=data
-        )
-        if not is_valid:
-            return response_utils.get_response_object(
-                response_code=response_codes.CODE_VALIDATION_FAILED,
-                response_message=response_codes.MESSAGE_VALIDATION_FAILED,
-                response_data=error_messages
-            )
-        if not obj:
-            return response_utils.get_response_object(
-                response_code=response_codes.CODE_RECORD_NOT_FOUND,
-                response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
-                    constants.DEVICE.title(), constants.ID
-                ))
-        return response_utils.get_response_object(
-            response_code=response_codes.CODE_SUCCESS,
-            response_message=response_codes.MESSAGE_SUCCESS,
-            response_data=obj.display(),
-        )
-
 
     @classmethod
     def suspend_controller(cls, data):
@@ -83,24 +66,3 @@ class FirmwareController(Controller):
             response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
                 constants.DEVICE.title(), constants.ID
             ))
-    
-    @classmethod
-    def upload_bin_to_gridfs(cls, file_obj, filename, metadata=None):
-        """
-        Uploads a .bin file to MongoDB GridFS using mongoengine.
-
-        Args:
-            file_obj: File-like object containing binary data.
-            filename: Name to store in GridFS.
-            metadata: Optional dict of metadata.
-
-        Returns:
-            firmware: The Firmware document instance.
-        """
-        firmware = Firmware()
-        firmware.bin_file.put(file_obj, filename=filename)
-        if metadata:
-            for key, value in metadata.items():
-                setattr(firmware, key, value)
-        firmware.save()
-        return firmware

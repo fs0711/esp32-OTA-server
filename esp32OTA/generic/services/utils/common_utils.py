@@ -4,6 +4,7 @@ import time
 import re
 import json
 import uuid
+import hashlib
 # import pytz
 # Local imports
 from esp32OTA.generic.services.utils import constants, __global__
@@ -184,3 +185,21 @@ def current_user():
         return token_obj[constants.TOKEN__USER].fetch()
     print('User not found')
     return None
+
+def get_file_checksum(file, algorithm=config.CHECKSUM_ALGORITHM):
+    hash_func = None
+    if algorithm == "md5":
+        hash_func = hashlib.md5()
+    elif algorithm == "sha1":
+        hash_func = hashlib.sha1()
+    elif algorithm == "sha256":
+        hash_func = hashlib.sha256()
+    elif algorithm == "sha512":
+        hash_func = hashlib.sha512()
+    else:
+        return None
+    # Read and update hash string value in blocks of 4K
+    for byte_block in iter(lambda: file.read(4096), b""):
+        hash_func.update(byte_block)
+    file.seek(0)
+    return hash_func.hexdigest()

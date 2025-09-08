@@ -38,7 +38,7 @@ def keys_validator(required_fields=[], optional_fields=[],
         @wraps(view_function)
         def wrapper(*args, **kwargs):
             if request_form_data:
-                data = common_utils.posted_form_data()
+                data = common_utils.posted()
             else:
                 data = common_utils.posted_files()
                 

@@ -51,7 +51,7 @@ def refresh_expiring_tokens(response):
 @users_bp.route("/login/<platform>", methods=["POST"])
 @decorators.logging
 @decorators.keys_validator(constants.LOGIN_REQUIRED_FIELDS_LIST, [],
-                           request_form_data=False)
+                           request_form_data=True)
 def loginmobile_user_view(data, platform):
     data = common_utils.posted()
     return UserController.login_controller(data=data, platform=platform)

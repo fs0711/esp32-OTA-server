@@ -22,16 +22,16 @@ class Firmware(models.Model):
 
 
     @classmethod
-    def update_validation_rules(cls): return {
-
+    def update_validation_rules(cls): return {    
+        
     }
 
 
     version = db.StringField(required=True)
     device_type = db.StringField(required=True)
     file = db.FileField(required=True)
-    file_name = db.StringField()
     checksum = db.StringField(required=True)
+    file_name = db.StringField()
     description = db.StringField()
     hw_version = db.StringField()
     update_path = db.StringField()
