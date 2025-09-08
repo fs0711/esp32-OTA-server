@@ -1,9 +1,9 @@
 server {
     listen 80;
-    server_name iot.digtrosoft.com iot.infoldtech.com;
+    server_name ota.zvolta.com;
 
     location / {
         include proxy_params;
-        proxy_pass http://unix:/home/munas-iot-backend/munasiot.sock;
+        proxy_pass http://unix:/home/esp32ota-backend/esp32ota.sock;
     }
 }

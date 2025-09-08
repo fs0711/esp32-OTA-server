@@ -1,5 +1,5 @@
-bind = "unix:munasiot.sock"
+bind = "unix:esp32ota.sock"
 workers = 1
-accesslog = "/var/log/munas-iot/reqlog"
-errorlog = "/var/log/munas-iot/errlog"
+accesslog = "/var/log/esp32ota/access.log"
+errorlog = "/var/log/esp32ota/error.log"
 umask = 7
