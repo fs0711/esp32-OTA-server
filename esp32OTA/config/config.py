@@ -3,8 +3,8 @@ import os
 # Local imports
 
 
-ENVIRONMENT = "LOCAL"
-# ENVIRONMENT = "STAGING"
+# ENVIRONMENT = "LOCAL"
+ENVIRONMENT = "STAGING"
 
 FUNCTION_LOGGING = False
 
@@ -35,8 +35,8 @@ FILTER_DATETIME_FORMAT = "%d %m %Y %H:%M:%S"
 TIME_ZONE = "Asia/Karachi"
 
 FRONTEND_URL = "https://iot.digtrosoft.com"
-MONGO_DB_USER = "munas"
-MONGO_DB_PASSWORD = "k9QauSm0wACivnIO"
+MONGO_DB_USER = "zvolta_admin"
+MONGO_DB_PASSWORD = "Frig3ahpHed9kUMJ"
 DATABASE_NAME = "ESP32OTA"
 
 MONGO_DB_URI = ""
@@ -48,7 +48,7 @@ if ENVIRONMENT == "STAGING":
         current_dir_path, "static/static_data.json")
     upload_files_path = os.path.join(current_dir_path, "static/uploads")
     # MONGO_DB_URI = f"mongodb://192.168.100.8:27017/ppbackend"
-    MONGO_DB_URI = f"mongodb+srv://{MONGO_DB_USER}:{MONGO_DB_PASSWORD}@munas-california.inrzszt.mongodb.net/{DATABASE_NAME}"
+    MONGO_DB_URI = f"mongodb+srv://{MONGO_DB_USER}:{MONGO_DB_PASSWORD}@zvolta-free.pp59hoj.mongodb.net/{DATABASE_NAME}"
     #     "retryWrites=true&w=majority"
 
 DEFAULT_ADMIN_NAME = "Admin"
