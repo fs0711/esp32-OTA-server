@@ -50,20 +50,37 @@
             "user_role_id": 999
         }
     ],
-
     "gender": [
         "Male",
         "Female",
         "Other"
     ],
-
-    "device_types": [
-        "Smart Switch type 1",
-        "Tracker"
-    ],
-
     "update_path": [
         "normal",
         "immediate"
+    ],
+    "variables": [
+        "device_id",
+        "wifi_mac",
+        "bt_mac",
+        "imei",
+        "apn",
+        "apn_user",
+        "apn_password",
+        "base_url",
+        "status_api",
+        "update_data_api",
+        "ping_api",
+        "qr_text",
+        "VCAL",
+        "cut_A",
+        "CT_MAX_CURRENT",
+        "CT_CAL_LOW",
+        "CT_CAL_MID",
+        "CT_CAL_HIGH",
+        "sw_timeout",
+        "wifi_ssid",
+        "wifi_password",
+        "config_timeout"
     ]
 }

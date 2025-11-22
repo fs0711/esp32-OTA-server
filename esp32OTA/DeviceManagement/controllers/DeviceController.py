@@ -7,6 +7,7 @@ from math import nan, isnan
 from ast import Constant
 from esp32OTA.generic.controllers import Controller
 from esp32OTA.DeviceManagement.models.Device import Device
+from esp32OTA.DeviceManagement.models.DeviceType import DeviceType
 from esp32OTA.UserManagement.controllers.TokenController import TokenController
 from esp32OTA.UserManagement.controllers.UserController import UserController
 from esp32OTA.generic.services.utils import constants, response_codes, response_utils, common_utils, pipeline
@@ -26,6 +27,23 @@ class DeviceController(Controller):
                 response_message=response_codes.MESSAGE_VALIDATION_FAILED,
                 response_data=error_messages
             )
+        
+        # Get device type to retrieve type_code
+        device_type_obj = DeviceType.objects(
+            device_type=data.get(constants.DEVICE__TYPE),
+            status=constants.OBJECT_STATUS_ACTIVE
+        ).first()
+        
+        if not device_type_obj:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_RECORD_NOT_FOUND,
+                response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
+                    "Device Type", constants.DEVICE__TYPE
+                ),
+                response_data=[]
+            )
+        
+        data[constants.DEVICE__TYPE] = device_type_obj.id
         user = common_utils.current_user()
         #generate access token for device 
         token_is_valid, token_error_messages, token = TokenController.generate_access_token(purpose=constants.PURPOSE_LOGIN, 
@@ -34,8 +52,21 @@ class DeviceController(Controller):
                                                                                             user=user)
         if token_is_valid:
             data.update({constants.DEVICE__ACCESS_TOKEN:token[constants.TOKEN__ACCESS_TOKEN]})
+            
+            # Create device to get unique ID (device_id)
             _, _, obj = cls.db_insert_record(
                 data=data, default_validation=False)
+            
+            # Generate serial number using type_code and device_id
+            type_code = device_type_obj.type_code
+            # Extract numeric part from device_id (format: DV-XXX)
+            device_numeric_id = int(obj.device_id.split('-')[1]) if '-' in str(obj.device_id) else obj.id
+            serial_number = common_utils.generate_device_serial(type_code, device_numeric_id)
+            
+            # Update device with serial number
+            obj.update(set__serial_number=serial_number)
+            obj.save()
+            
             return response_utils.get_response_object(
                 response_code=response_codes.CODE_SUCCESS,
                 response_message=response_codes.MESSAGE_SUCCESS,
@@ -103,3 +134,7 @@ class DeviceController(Controller):
             response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
                 constants.DEVICE.title(), constants.ID
             ))
+    
+    @classmethod
+    def config_controller(cls, data):
+        

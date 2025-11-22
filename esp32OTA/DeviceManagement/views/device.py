@@ -47,8 +47,14 @@ def get_view():
 def update_view(data):
     return DeviceController.update_controller(data=data)
 
-@device_bp.route("/search", methods=["POST", "GET"])
+@device_bp.route("/config", methods=["POST", "GET"])
 @decorators.is_authenticated
 @decorators.keys_validator()
 def search_view(data):
-    return DeviceController.search_controller(data=data)
+    return DeviceController.config_controller(data=data)
+
+# @device_bp.route("/search", methods=["POST", "GET"])
+# @decorators.is_authenticated
+# @decorators.keys_validator()
+# def search_view(data):
+#     return DeviceController.search_controller(data=data)

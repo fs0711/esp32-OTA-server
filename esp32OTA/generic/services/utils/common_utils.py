@@ -36,12 +36,14 @@ def posted_files():
     Get Data
     :return:
     """
-    data = dict(request.form)  # form fields
-    files = {key: request.files[key] for key in request.files}  # files
-    data.update(files)
+    data = {}  # Create empty dict to hold both form fields and files
+    # Add form fields
+    for key in request.form:
+        data[key] = request.form[key]
+    # Add files to the dictionary
+    for key in request.files:
+        data[key] = request.files[key]
     return data
-
-
 
 
 def raise_response_code(code):
@@ -203,3 +205,58 @@ def get_file_checksum(file, algorithm=config.CHECKSUM_ALGORITHM):
         hash_func.update(byte_block)
     file.seek(0)
     return hash_func.hexdigest()
+
+
+def crc8(data: bytes, poly=0x07, init=0x00) -> int:
+
+    crc = init
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            if crc & 0x80:
+                crc = (crc << 1) ^ poly
+            else:
+                crc <<= 1
+            crc &= 0xFF
+    return crc
+
+def serial_checksum(serial: str) -> str:
+    """
+    Takes a Zvolta serial in format 'ZV-EV1-2546-00457',
+    computes CRC-8 checksum, and returns full serial with checksum.
+    """
+    serial_core = serial.replace("-", "")
+    data = serial_core.encode('ascii')
+
+    checksum = crc8(data)
+
+    return f"{serial}-{checksum:02X}"
+
+
+def generate_device_serial(type_code: str, unique_id: int) -> str:
+    """
+    Generates a device serial number with format: ZV-[TYPE_CODE]-[YYWW]-[UID]-[CS]
+    
+    Args:
+        type_code: Product variant code (e.g., 'EV1')
+        unique_id: Unique identifier (will be zero-padded to 5 digits)
+    
+    Returns:
+        Complete serial number with checksum (e.g., 'ZV-EV1-2546-00457-A3')
+    """
+    from datetime import datetime
+    
+    # Get current year (last 2 digits) and ISO week number
+    now = datetime.now()
+    year = now.strftime("%y")
+    week = now.isocalendar()[1]
+    yyww = f"{year}{week:02d}"
+    
+    # Format unique ID with zero padding (5 digits)
+    uid = f"{unique_id:05d}"
+    
+    # Build serial without checksum
+    serial_base = f"ZV-{type_code}-{yyww}-{uid}"
+    
+    # Calculate checksum
+    return serial_checksum(serial_base)

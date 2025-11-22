@@ -29,3 +29,14 @@ def upload_view(data):
 @decorators.keys_validator()
 def read_view(data):
     return FirmwareController.read_controller(data=data)
+
+
+@firmware_bp.route("/assign", methods=["POST"])
+@decorators.is_authenticated
+@decorators.keys_validator(
+    [constants.ID, constants.DEVICE_TYPE__ID],
+    [],
+    request_form_data=True
+)
+def assign_to_device_type_view(data):
+    return FirmwareController.assign_firmware_to_device_type(data=data)

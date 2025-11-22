@@ -12,11 +12,11 @@ class Firmware(models.Model):
     @classmethod
     def validation_rules(cls):
         return {
-            constants.FIRMWARE__DEVICE_TYPE: [{"rule": "required"}, {"rule": "choices", "options": constants.DEVICE__TYPE_LIST}],
+            constants.FIRMWARE__DEVICE_TYPE: [{"rule": "datatype", "datatype": str}],
             constants.FIRMWARE__VERSION:  [{"rule": "required"}, {"rule": "datatype", "datatype": str}],
             constants.FIRMWARE__FILE: [{"rule": "required"}],
             constants.FIRMWARE__DESCRIPTION: [{"rule": "datatype", "datatype": str}],
-            constants.FIRMWARE__HARDWARE_VERSION: [{"rule": "datatype", "datatype": str}],
+            constants.FIRMWARE__HARDWARE_VERSION: [{"rule": "required"}, {"rule": "datatype", "datatype": str}],
             constants.FIRMWARE__UPDATE_PATH: [{"rule": "choices", "options": constants.FIRMWARE__UPDATE_PATH_LIST}]
         }
 
@@ -28,7 +28,7 @@ class Firmware(models.Model):
 
 
     version = db.StringField(required=True)
-    device_type = db.StringField(required=True)
+    device_type = db.LazyReferenceField(document_type='DeviceType')
     file = db.FileField(required=True)
     checksum = db.StringField(required=True)
     file_name = db.StringField()
@@ -49,7 +49,6 @@ class Firmware(models.Model):
             constants.UPDATED_ON: self[constants.UPDATED_ON],
             constants.FIRMWARE__VERSION: self[constants.FIRMWARE__VERSION],
             constants.FIRMWARE__DEVICE_TYPE: self[constants.FIRMWARE__DEVICE_TYPE],
-            constants.FIRMWARE__FILE: self[constants.FIRMWARE__FILE],
             constants.FIRMWARE__CHECKSUM: self[constants.FIRMWARE__CHECKSUM],
             constants.FIRMWARE__DESCRIPTION: self[constants.FIRMWARE__DESCRIPTION],
             constants.FIRMWARE__HARDWARE_VERSION: self[constants.FIRMWARE__HARDWARE_VERSION],
