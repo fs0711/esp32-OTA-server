@@ -59,7 +59,7 @@
         "normal",
         "immediate"
     ],
-    "variables": [
+    "device_variables": [
         "device_id",
         "wifi_mac",
         "bt_mac",
