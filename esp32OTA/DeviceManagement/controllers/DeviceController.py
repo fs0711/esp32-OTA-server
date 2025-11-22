@@ -135,6 +135,6 @@ class DeviceController(Controller):
                 constants.DEVICE.title(), constants.ID
             ))
     
-    @classmethod
-    def config_controller(cls, data):
+    # @classmethod
+    # def config_controller(cls, data):
         
