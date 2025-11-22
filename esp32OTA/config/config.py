@@ -4,7 +4,7 @@ import os
 
 
 # ENVIRONMENT = "LOCAL"
-ENVIRONMENT = "STAGING"
+ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "LOCAL")
 
 FUNCTION_LOGGING = False
 
