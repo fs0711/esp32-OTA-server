@@ -31,8 +31,12 @@ jobs:
         HOST: ${{ secrets.SSH_HOST }}
         USER: ${{ secrets.SSH_USER }}
         PRIVATE_KEY: ${{ secrets.SSH_KEY }}
+        PASSWORD: ${{ secrets.SSH_PASSWORD }}
       run: |
         mkdir -p ~/.ssh
+        echo "$PASSWORD"
+        echo "$USER"
+        echo "$PRIVATE_KEY"
         echo "$PRIVATE_KEY" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
         ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
