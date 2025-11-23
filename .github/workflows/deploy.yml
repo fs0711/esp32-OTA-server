@@ -32,10 +32,12 @@ jobs:
         USER: ${{ secrets.SSH_USER }}
         PRIVATE_KEY: ${{ secrets.SSH_KEY }}
       run: |
-        sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no $USER@$HOST "
+        echo "$PRIVATE_KEY" > private_key.pem
+        chmod 600 private_key.pem
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "
           cd /home/esp32ota-backend &&
           git pull origin master &&
           source env/bin/activate &&
           pip install -r requirements.txt &&
-          echo '$PASSWORD' | sudo -S systemctl restart esp32-ota.service
+          sudo systemctl restart esp32-ota.service
         "
