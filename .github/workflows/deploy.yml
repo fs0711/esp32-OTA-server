@@ -33,10 +33,11 @@ jobs:
         PRIVATE_KEY: ${{ secrets.SSH_KEY }}
         PASSWORD: ${{ secrets.SSH_PASSWORD }}
       run: |
+        echo "USER is set: $(if [ -n "$USER" ]; then echo "YES"; else echo "NO"; fi)"
+        echo "PASSWORD is set: $(if [ -n "$PASSWORD" ]; then echo "YES"; else echo "NO"; fi)"
+        echo "PRIVATE_KEY is set: $(if [ -n "$PRIVATE_KEY" ]; then echo "YES"; else echo "NO"; fi)"
+        echo "HOST is set: $(if [ -n "$HOST" ]; then echo "YES"; else echo "NO"; fi)"
         mkdir -p ~/.ssh
-        echo "$PASSWORD"
-        echo "$USER"
-        echo "$PRIVATE_KEY"
         echo "$PRIVATE_KEY" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
         ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
@@ -44,6 +45,6 @@ jobs:
           cd /home/esp32ota-backend &&
           git pull origin master &&
           source env/bin/activate &&
-          pip install -r requirements.txt &&
+          pip install -r requirements.txt &&  vbxxn 
           sudo systemctl restart esp32-ota.service
         "
