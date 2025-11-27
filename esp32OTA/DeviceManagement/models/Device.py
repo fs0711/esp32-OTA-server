@@ -38,9 +38,6 @@ class Device(models.Model):
     rollback = db.BooleanField(default=False)
     update_config = db.BooleanField(default=False)
     update_path= db.StringField(default="")
-    wifi_mac = db.StringField(default="")
-    bt_mac = db.StringField(default="")
-    imei = db.StringField(default="")
     fw_file = db.LazyReferenceField(document_type='Firmware')
 
     def __str__(self):

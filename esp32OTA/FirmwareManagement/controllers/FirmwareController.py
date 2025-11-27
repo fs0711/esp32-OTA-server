@@ -2,6 +2,7 @@
 import re
 from math import nan, isnan
 # Framework imports
+from flask import Response, stream_with_context
 
 # Local imports
 from ast import Constant
@@ -144,3 +145,64 @@ class FirmwareController(Controller):
                 "devices_updated": updated_count
             }
         )
+    
+    @classmethod
+    def download_firmware(cls, data):
+        try:
+            # Retrieve firmware record
+            firmware = Firmware.objects(
+                id=data[constants.ID],
+                status=constants.OBJECT_STATUS_ACTIVE
+            ).first()
+            
+            if not firmware:
+                return response_utils.get_response_object(
+                    response_code=response_codes.CODE_RECORD_NOT_FOUND,
+                    response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
+                        constants.FIRMWARE.title(), constants.ID
+                    ))
+            
+            # Check if file exists
+            if not firmware.file:
+                return response_utils.get_response_object(
+                    response_code=response_codes.CODE_RECORD_NOT_FOUND,
+                    response_message="Firmware file not found"
+                )
+            
+            # Create a generator to stream the file in chunks
+            def generate():
+                chunk_size = 4096  # 4KB chunks
+                firmware.file.seek(0)
+                while True:
+                    chunk = firmware.file.read(chunk_size)
+                    if not chunk:
+                        break
+                    yield chunk
+            
+            # Get filename for the download
+            filename = firmware.file_name if firmware.file_name else f"firmware_{firmware.version}.bin"
+            
+            # Create streaming response
+            response = Response(
+                stream_with_context(generate()),
+                mimetype='application/octet-stream'
+            )
+            
+            # Set headers for file download
+            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response.headers['Content-Type'] = 'application/octet-stream'
+            response.headers['Content-Length'] = str(firmware.file.length)
+            response.headers['X-Firmware-Version'] = firmware.version
+            response.headers['X-Firmware-Checksum'] = firmware.checksum
+            
+            if firmware.hw_version:
+                response.headers['X-Hardware-Version'] = firmware.hw_version
+            
+            return response
+            
+        except Exception as e:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_EXCEPTION,
+                response_message=f"Error downloading firmware: {str(e)}"
+            )
+

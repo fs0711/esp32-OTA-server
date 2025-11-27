@@ -6,8 +6,9 @@ from datetime import datetime
 from flask import Blueprint, redirect, url_for, redirect, render_template, request
 
 # Local imports
-from esp32OTA.generic.services.utils import constants, decorators, common_utils
+from esp32OTA.generic.services.utils import constants, decorators, common_utils, response_codes, response_utils
 from esp32OTA.FirmwareManagement.controllers.FirmwareController import FirmwareController
+from esp32OTA.FirmwareManagement.models.Firmware import Firmware
 from esp32OTA.config import config
 
 firmware_bp = Blueprint("firmware_bp", __name__)
@@ -40,3 +41,15 @@ def read_view(data):
 )
 def assign_to_device_type_view(data):
     return FirmwareController.assign_firmware_to_device_type(data=data)
+
+
+@firmware_bp.route("/download", methods=["GET"])
+@decorators.is_authenticated
+@decorators.keys_validator(
+    [constants.ID],
+    [],
+    request_form_data=True
+)
+def download_firmware_view(data):
+    return FirmwareController.download_firmware(data=data)
+
