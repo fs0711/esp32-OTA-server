@@ -2,6 +2,11 @@ server {
     listen 80;
     server_name ota.zvolta.com;
 
+    client_max_body_size 2M;
+    
+    client_body_timeout 60s;
+    proxy_read_timeout 60s;
+
     location / {
         include proxy_params;
         proxy_pass http://unix:/home/esp32ota-backend/esp32ota.sock;
