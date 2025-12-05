@@ -43,7 +43,7 @@ def update_view(data):
     return FirmwareController.update_controller(data=data)
 
 
-@firmware_bp.route("/suspend", methods=["GET"])
+@firmware_bp.route("/suspend", methods=["DELETE"])
 @decorators.is_authenticated
 @decorators.keys_validator(
     [constants.ID],
