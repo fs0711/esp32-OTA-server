@@ -14,14 +14,12 @@ class Device(models.Model):
     def validation_rules(cls):
         return {
             constants.DEVICE__NAME: [{"rule": "required"}, {"rule": "datatype", "datatype": str}],
-            constants.DEVICE__TYPE:  [{"rule": "required"}, {"rule": "datatype", "datatype": str}],
         }
 
 
     @classmethod
     def update_validation_rules(cls): return {
             constants.DEVICE__NAME: [{"rule": "datatype", "datatype": str}],
-            constants.DEVICE__TYPE:  [ {"rule": "datatype", "datatype": str}],
     }
 
 
@@ -39,6 +37,7 @@ class Device(models.Model):
     update_config = db.BooleanField(default=False)
     update_path= db.StringField(default="")
     fw_file = db.LazyReferenceField(document_type='Firmware')
+    qr_code = db.StringField(default="")
 
     def __str__(self):
         return str(self.pk)
@@ -63,4 +62,17 @@ class Device(models.Model):
             constants.DEVICE__ID: self[constants.DEVICE__ID],
             constants.DEVICE__NAME: self[constants.DEVICE__NAME],
             constants.CREATED_ON: self[constants.CREATED_ON],
+        }
+    
+    def display_config(self):
+        return {
+            constants.DEVICE__HARDWARE_VERSION: self[constants.DEVICE__HARDWARE_VERSION],
+            constants.DEVICE__FIRMWARE_VERSION: self[constants.DEVICE__FIRMWARE_VERSION],
+            constants.DEVICE__NEW_FIRMWARE_VERSION: self[constants.DEVICE__NEW_FIRMWARE_VERSION],
+            constants.DEVICE__ROLLBACK: self[constants.DEVICE__ROLLBACK],
+            constants.DEVICE__UPDATE_CONFIG: self[constants.DEVICE__UPDATE_CONFIG],
+            constants.DEVICE__UPDATE_PATH: self[constants.DEVICE__UPDATE_PATH],
+            constants.DEVICE__FIRMWARE_FILE: str(self[constants.DEVICE__FIRMWARE_FILE].fetch().id) if self[constants.DEVICE__FIRMWARE_FILE] else "",
+            constants.DEVICE__QR_CODE: self[constants.DEVICE__QR_CODE],
+            constants.DEVICE__VARIABLES: self[constants.DEVICE__VARIABLES],
         }

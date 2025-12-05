@@ -33,28 +33,23 @@ def read_view(data):
     return DeviceController.read_controller(data=data)
 
 
-@device_bp.route("/getclients", methods=["GET"])
-@decorators.is_authenticated
-# @decorators.keys_validator()
-def get_view():
-    return DeviceController.get_clients()
-
-
 @device_bp.route("/update", methods=["PUT"])
 @decorators.is_authenticated
 # @decorators.roles_allowed([constants.ROLE_ID_ADMIN])
-@decorators.keys_validator()
+@decorators.keys_validator(
+    [constants.ID],
+    constants.UPDATE_FIELDS_LIST__DEVICE,
+    request_form_data=True
+)
 def update_view(data):
     return DeviceController.update_controller(data=data)
 
 @device_bp.route("/config", methods=["POST", "GET"])
 @decorators.is_authenticated
-@decorators.keys_validator()
+@decorators.keys_validator(
+    [],
+    [constants.DEVICE__VARIABLES],
+    request_form_data=True
+)
 def search_view(data):
-    return DeviceController.config_controller(data=data)
-
-# @device_bp.route("/search", methods=["POST", "GET"])
-# @decorators.is_authenticated
-# @decorators.keys_validator()
-# def search_view(data):
-#     return DeviceController.search_controller(data=data)
+    return DeviceController.config_controller(data=data, method=request.method)

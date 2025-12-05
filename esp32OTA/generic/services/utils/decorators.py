@@ -72,7 +72,7 @@ def is_authenticated(view_function):
 
     @wraps(view_function)
     def decorator(*args, **kwargs):
-        token_obj = common_utils.get_token()
+        token_obj, _ = common_utils.get_token()
         if not token_obj:
             return response_utils.get_response_object(
                 response_code=response_codes.CODE_UNAUTHENTICATED_ACCESS,

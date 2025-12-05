@@ -15,7 +15,7 @@ users_bp = Blueprint("users_bp", __name__)
 @app.after_request
 def refresh_expiring_tokens(response):
     try:
-        token_obj = common_utils.get_token()
+        token_obj, _ = common_utils.get_token()
         if not token_obj:
             return response
         if token_obj.platform == constants.PLATFORM_WEB:
@@ -36,6 +36,19 @@ def refresh_expiring_tokens(response):
             if not(current_timestamp > token_obj.expiry_time):
                 token_obj.expiry_time = common_utils.get_time(
                     days=config.TOKEN_EXPIRY_TIME_MOBILE)
+                token_obj.save()
+            else:
+                token_obj.is_expired = True
+                token_obj.save()
+                return response_utils.get_response_object(
+                    response_code=response_codes.CODE_HTTP_401,
+                    response_message=response_codes
+                    .MESSAGE_AUTHENTICATION_FAILED)
+        if token_obj.platform == constants.PLATFORM_DEVICE:
+            current_timestamp = common_utils.get_time()
+            if not(current_timestamp > token_obj.expiry_time):
+                token_obj.expiry_time = common_utils.get_time(
+                    days=config.TOKEN_EXPIRY_TIME_DEVICE)
                 token_obj.save()
             else:
                 token_obj.is_expired = True

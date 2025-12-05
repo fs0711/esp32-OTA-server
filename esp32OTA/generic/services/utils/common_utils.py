@@ -156,14 +156,21 @@ def get_access_token():
 def get_token():
     access_token, token_type = get_access_token()
     if not access_token:
-        return None
+        return None, None
     from esp32OTA.UserManagement.controllers.TokenController import TokenController
     token_obj = TokenController.authenticate_token(access_token, purpose=constants.PURPOSE_LOGIN)
     if not token_obj:
-        return None
+        return None, None
     user = token_obj[constants.USER].fetch()
     __global__.set_current_user(user)
-    return token_obj
+    if token_obj[constants.TOKEN__PLATFORM] == constants.PLATFORM_DEVICE:
+        from esp32OTA.DeviceManagement.controllers.DeviceController import DeviceController
+        device = DeviceController.get_device_by_access_token(access_token)
+        if not device:
+            return None, None
+        __global__.set_current_device(device)
+        return token_obj, device
+    return token_obj, None
 
 def get_last_update(token):
     from esp32OTA.UserManagement.controllers.TokenController import TokenController
@@ -182,7 +189,7 @@ def current_user():
     user = __global__.get_current_user()
     if user:
         return user
-    token_obj = get_token()
+    token_obj, _ = get_token()
     if token_obj:
         return token_obj[constants.TOKEN__USER].fetch()
     print('User not found')
