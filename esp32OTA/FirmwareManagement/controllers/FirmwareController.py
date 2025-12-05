@@ -19,6 +19,8 @@ class FirmwareController(Controller):
     @classmethod
     def upload_controller(cls, data):
         is_valid, error_messages = cls.cls_validate_data(data=data)
+        filename = data[constants.FIRMWARE__FILE].filename
+        data[constants.FIRMWARE__FILE_NAME] = re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
         if not is_valid:
             return response_utils.get_response_object(
                 response_code=response_codes.CODE_VALIDATION_FAILED,
@@ -50,6 +52,25 @@ class FirmwareController(Controller):
             response_data=[
                 obj.display() for obj in cls.db_read_records(read_filter=data, deleted_records=False)
             ])
+    
+    @classmethod
+    def update_controller(cls, data):
+        _, _, obj = cls.db_update_single_record(
+            read_filter={constants.ID: data[constants.ID]},
+            update_filter=data,
+            update_mode=constants.UPDATE_MODE__PARTIAL,
+        )
+        if obj:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_SUCCESS,
+                response_message=response_codes.MESSAGE_SUCCESS,
+                response_data=obj.display(),
+            )
+        return response_utils.get_response_object(
+            response_code=response_codes.CODE_RECORD_NOT_FOUND,
+            response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
+                constants.FIRMWARE.title(), constants.ID
+            ))
 
     @classmethod
     def suspend_controller(cls, data):

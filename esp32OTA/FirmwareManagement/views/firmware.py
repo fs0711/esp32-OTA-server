@@ -32,6 +32,28 @@ def read_view(data):
     return FirmwareController.read_controller(data=data)
 
 
+@firmware_bp.route("/update", methods=["PUT"])
+@decorators.is_authenticated
+@decorators.keys_validator(
+    [constants.ID],
+    constants.UPDATE_FIELDS_LIST__FIRMWARE,
+    request_form_data=True
+)
+def update_view(data):
+    return FirmwareController.update_controller(data=data)
+
+
+@firmware_bp.route("/suspend", methods=["GET"])
+@decorators.is_authenticated
+@decorators.keys_validator(
+    [constants.ID],
+    [],
+    request_form_data=True
+)
+def suspend_view(data):
+    return FirmwareController.suspend_controller(data=data)
+
+
 @firmware_bp.route("/assign", methods=["POST"])
 @decorators.is_authenticated
 @decorators.keys_validator(

@@ -22,8 +22,13 @@ class Firmware(models.Model):
 
 
     @classmethod
-    def update_validation_rules(cls): return {    
-        
+    def update_validation_rules(cls): return {
+            constants.FIRMWARE__DEVICE_TYPE: [{"rule": "datatype", "datatype": str}],
+            constants.FIRMWARE__VERSION:  [{"rule": "required"}, {"rule": "datatype", "datatype": str}],
+            constants.FIRMWARE__FILE: [{"rule": "nonexistent"}],
+            constants.FIRMWARE__DESCRIPTION: [{"rule": "datatype", "datatype": str}],
+            constants.FIRMWARE__HARDWARE_VERSION: [{"rule": "required"}, {"rule": "datatype", "datatype": str}],
+            constants.FIRMWARE__UPDATE_PATH: [{"rule": "choices", "options": constants.FIRMWARE__UPDATE_PATH_LIST}]
     }
 
 
@@ -53,7 +58,8 @@ class Firmware(models.Model):
             constants.FIRMWARE__DESCRIPTION: self[constants.FIRMWARE__DESCRIPTION],
             constants.FIRMWARE__HARDWARE_VERSION: self[constants.FIRMWARE__HARDWARE_VERSION],
             constants.FIRMWARE__UPDATE_PATH: self[constants.FIRMWARE__UPDATE_PATH],
-            constants.FIRMWARE__RELEASED_ON: self[constants.FIRMWARE__RELEASED_ON]
+            constants.FIRMWARE__RELEASED_ON: self[constants.FIRMWARE__RELEASED_ON],
+            constants.FIRMWARE__FILE_NAME: self[constants.FIRMWARE__FILE_NAME],
         }
 
     def display_min(self):
