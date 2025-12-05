@@ -48,8 +48,8 @@ def update_view(data):
 @decorators.is_authenticated
 @decorators.keys_validator(
     [],
-    [constants.DEVICE__VARIABLES],
+    [constants.DEVICE__VARIABLES, constants.DEVICE__HARDWARE_VERSION],
     request_form_data=True
 )
-def search_view(data):
+def config_view(data):
     return DeviceController.config_controller(data=data, method=request.method)
