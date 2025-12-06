@@ -1,12 +1,5 @@
 server {
     listen 80;
-    server_name ota.zvolta.com;
-    
-    # Redirect all HTTP traffic to HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-server {
     listen 443 ssl http2;
     server_name ota.zvolta.com;
 
