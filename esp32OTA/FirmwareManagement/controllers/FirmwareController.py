@@ -192,7 +192,7 @@ class FirmwareController(Controller):
             
             # Create a generator to stream the file in chunks
             def generate():
-                chunk_size = 4096  # 4KB chunks
+                chunk_size = 1024  # 1KB chunks optimal for ESP32
                 firmware.file.seek(0)
                 while True:
                     chunk = firmware.file.read(chunk_size)
@@ -200,24 +200,16 @@ class FirmwareController(Controller):
                         break
                     yield chunk
             
-            # Get filename for the download
-            filename = firmware.file_name if firmware.file_name else f"firmware_{firmware.version}.bin"
-            
             # Create streaming response
             response = Response(
                 stream_with_context(generate()),
                 mimetype='application/octet-stream'
             )
             
-            # Set headers for file download
-            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+            # Set minimal headers required by ESP32 OTA
             response.headers['Content-Type'] = 'application/octet-stream'
             response.headers['Content-Length'] = str(firmware.file.length)
-            response.headers['X-Firmware-Version'] = firmware.version
-            response.headers['X-Firmware-Checksum'] = firmware.checksum
-            
-            if firmware.hw_version:
-                response.headers['X-Hardware-Version'] = firmware.hw_version
+            response.headers['x-MD5'] = firmware.checksum
             
             return response
             
