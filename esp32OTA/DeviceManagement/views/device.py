@@ -48,7 +48,8 @@ def update_view(data):
 @decorators.is_authenticated
 @decorators.keys_validator(
     [],
-    [constants.DEVICE__VARIABLES, constants.DEVICE__HARDWARE_VERSION],
+    [constants.DEVICE__VARIABLES, constants.DEVICE__HARDWARE_VERSION, 
+     constants.DEVICE__FIRMWARE_VERSION],
     request_form_data=True
 )
 def config_view(data):
