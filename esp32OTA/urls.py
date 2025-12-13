@@ -11,6 +11,7 @@ from esp32OTA.UserManagement.views.users import users_bp
 from esp32OTA.DeviceManagement.views.device import device_bp
 from esp32OTA.DeviceManagement.views.device_type import device_type_bp
 from esp32OTA.FirmwareManagement.views.firmware import firmware_bp
+from esp32OTA.Logging.views.logging import logging_bp
 
 
 @app.route("/api/static-data", methods=["GET"])
@@ -18,8 +19,8 @@ def static_data_view():
     return jsonify(constants.STATIC_DATA)
 
 
-
 app.register_blueprint(users_bp, url_prefix="/api/users")
 app.register_blueprint(device_bp, url_prefix="/api/device")
 app.register_blueprint(device_type_bp, url_prefix="/api/device-type")
 app.register_blueprint(firmware_bp, url_prefix="/api/firmware")
+app.register_blueprint(logging_bp, url_prefix="/api/logging")
