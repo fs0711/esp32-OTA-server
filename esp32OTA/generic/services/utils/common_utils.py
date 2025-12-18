@@ -168,7 +168,16 @@ def get_token():
         device = DeviceController.get_device_by_access_token(access_token)
         if not device:
             return None, None
+        current_time = get_time()
+        if current_time - token_obj[constants.UPDATED_ON] > (config.DEVICE_OFFLINE_TIME * 60 * 1000):
+            status = "offline"
+        else:
+            status = "online"
+        last_update = epoch_to_datetime(token_obj[constants.UPDATED_ON])
         __global__.set_current_device(device)
+        device[constants.DEVICE__CONNECTION] = {'last_update': last_update,
+                                        'status': status}
+        device.save()
         return token_obj, device
     return token_obj, None
 

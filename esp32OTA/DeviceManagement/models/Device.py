@@ -38,6 +38,7 @@ class Device(models.Model):
     update_path= db.StringField(default="")
     fw_file = db.LazyReferenceField(document_type='Firmware')
     qr_code = db.StringField(default="")
+    connection = db.DictField(default={})
 
     def __str__(self):
         return str(self.pk)
@@ -54,6 +55,15 @@ class Device(models.Model):
             constants.CREATED_BY: self[constants.CREATED_BY].fetch().name,
             constants.CREATED_ON: self[constants.CREATED_ON],
             constants.UPDATED_ON: self[constants.UPDATED_ON],
+            constants.DEVICE__HARDWARE_VERSION: self[constants.DEVICE__HARDWARE_VERSION],
+            constants.DEVICE__FIRMWARE_VERSION: self[constants.DEVICE__FIRMWARE_VERSION],
+            constants.DEVICE__NEW_FIRMWARE_VERSION: self[constants.DEVICE__NEW_FIRMWARE_VERSION],
+            constants.DEVICE__ROLLBACK: self[constants.DEVICE__ROLLBACK],
+            constants.DEVICE__UPDATE_CONFIG: self[constants.DEVICE__UPDATE_CONFIG],
+            constants.DEVICE__UPDATE_PATH: self[constants.DEVICE__UPDATE_PATH],
+            constants.DEVICE__FIRMWARE_FILE: str(self[constants.DEVICE__FIRMWARE_FILE].fetch().file_name) if self[constants.DEVICE__FIRMWARE_FILE] else "",
+            constants.DEVICE__QR_CODE: self[constants.DEVICE__QR_CODE],
+            constants.DEVICE__CONNECTION: self[constants.DEVICE__CONNECTION]
         }
 
     def display_min(self):

@@ -228,6 +228,7 @@ DEVICE__WIFI_MAC = "wifi_mac"
 DEVICE__BT_MAC = "bt_mac"
 DEVICE__IMEI = "imei"
 DEVICE__QR_CODE = "qr_code"
+DEVICE__CONNECTION = "connection"
 
 
 REQUIRED_FIELDS_LIST__DEVICE = [

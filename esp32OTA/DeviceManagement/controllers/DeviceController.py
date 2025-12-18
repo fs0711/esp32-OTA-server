@@ -80,7 +80,7 @@ class DeviceController(Controller):
 
     @classmethod
     def read_controller(cls, data):
-        user_childs =  UserController.get_users_childs_list()
+        # user_childs =  UserController.get_users_childs_list()
         filter = {}
 
         return response_utils.get_response_object(
