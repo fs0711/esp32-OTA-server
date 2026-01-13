@@ -192,7 +192,7 @@ class FirmwareController(Controller):
             
             # Create a generator to stream the file in chunks
             def generate():
-                chunk_size = 1024  # 1KB chunks optimal for ESP32
+                chunk_size = 4096
                 firmware.file.seek(0)
                 while True:
                     chunk = firmware.file.read(chunk_size)
