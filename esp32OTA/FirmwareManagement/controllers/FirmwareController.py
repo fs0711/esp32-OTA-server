@@ -209,7 +209,7 @@ class FirmwareController(Controller):
             # Set minimal headers required by ESP32 OTA
             response.headers['Content-Type'] = 'application/octet-stream'
             response.headers['Content-Length'] = str(firmware.file.length)
-            response.headers['x-MD5'] = firmware.checksum
+            # response.headers['x-MD5'] = firmware.checksum
             
             return response
             
