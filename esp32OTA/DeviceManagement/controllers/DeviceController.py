@@ -203,3 +203,14 @@ class DeviceController(Controller):
             response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
                 constants.DEVICE.title(), constants.ID
             ))
+        
+    @classmethod
+    def get_last_online(cls):
+        devices = cls.db_read_records(
+            read_filter={constants.STATUS: constants.OBJECT_STATUS_ACTIVE})
+        for device in devices:
+            online = common_utils.get_last_update(device[constants.DEVICE__ACCESS_TOKEN])
+            device[constants.DEVICE__CONNECTION] = online
+            device.save()
+        return True
+    

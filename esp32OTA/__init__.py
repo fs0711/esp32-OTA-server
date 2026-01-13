@@ -25,3 +25,7 @@ moment = Moment(app)
 bcrypt = Bcrypt(app)
 app.config.update(config.MAIL_SETTINGS)
 register_scripts()
+
+# Initialize scheduler for background tasks
+from esp32OTA.scheduler import init_scheduler
+init_scheduler(app)
