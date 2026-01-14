@@ -1,5 +1,6 @@
 # Python imports
 import re
+import os
 from math import nan, isnan
 # Framework imports
 from flask import Response, stream_with_context
@@ -38,6 +39,21 @@ class FirmwareController(Controller):
         data[constants.FIRMWARE__CHECKSUM] = checksum
         _, _, obj = cls.db_insert_file(
             data=data, default_validation=False)
+        
+        # Save firmware file to local storage
+        if obj:
+            # Create firmware_files directory if it doesn't exist
+            firmware_dir = os.path.join(os.getcwd(), 'firmware_files')
+            os.makedirs(firmware_dir, exist_ok=True)
+            
+            # Save file with record ID as filename
+            firmware_file = data[constants.FIRMWARE__FILE]
+            firmware_file.seek(0)  # Reset file pointer to beginning
+            file_path = os.path.join(firmware_dir, str(obj.id))
+            
+            with open(file_path, 'wb') as f:
+                f.write(firmware_file.read())
+        
         return response_utils.get_response_object(
             response_code=response_codes.CODE_SUCCESS,
             response_message=response_codes.MESSAGE_SUCCESS,
@@ -170,9 +186,15 @@ class FirmwareController(Controller):
     @classmethod
     def download_firmware(cls, data):
         try:
-            # Retrieve firmware record
+            firmware_id = data[constants.ID]
+            
+            # Check local storage first
+            firmware_dir = os.path.join(os.getcwd(), 'firmware_files')
+            file_path = os.path.join(firmware_dir, str(firmware_id))
+            
+            # Retrieve firmware record for metadata
             firmware = Firmware.objects(
-                id=data[constants.ID],
+                id=firmware_id,
                 status=constants.OBJECT_STATUS_ACTIVE
             ).first()
             
@@ -183,35 +205,68 @@ class FirmwareController(Controller):
                         constants.FIRMWARE.title(), constants.ID
                     ))
             
-            # Check if file exists
-            if not firmware.file:
-                return response_utils.get_response_object(
-                    response_code=response_codes.CODE_RECORD_NOT_FOUND,
-                    response_message="Firmware file not found"
+            # Check if file exists in local storage
+            if os.path.exists(file_path):
+                # Stream from local storage
+                def generate_from_file():
+                    chunk_size = 8192
+                    with open(file_path, 'rb') as f:
+                        while True:
+                            chunk = f.read(chunk_size)
+                            if not chunk:
+                                break
+                            yield chunk
+                
+                response = Response(
+                    stream_with_context(generate_from_file()),
+                    mimetype='application/octet-stream'
                 )
+                
+                # Set headers
+                response.headers['Content-Type'] = 'application/octet-stream'
+                response.headers['Content-Length'] = str(os.path.getsize(file_path))
+                response.headers['x-MD5'] = firmware.checksum
+                
+                return response
             
-            # Create a generator to stream the file in chunks
-            def generate():
-                chunk_size = 8192
+            else:
+                # File not in local storage, check database
+                if not firmware.file:
+                    return response_utils.get_response_object(
+                        response_code=response_codes.CODE_RECORD_NOT_FOUND,
+                        response_message="Firmware file not found"
+                    )
+                
+                # Create firmware_files directory if it doesn't exist
+                os.makedirs(firmware_dir, exist_ok=True)
+                
+                # Download from database to local storage
                 firmware.file.seek(0)
-                while True:
-                    chunk = firmware.file.read(chunk_size)
-                    if not chunk:
-                        break
-                    yield chunk
-            
-            # Create streaming response
-            response = Response(
-                stream_with_context(generate()),
-                mimetype='application/octet-stream'
-            )
-            
-            # Set minimal headers required by ESP32 OTA
-            response.headers['Content-Type'] = 'application/octet-stream'
-            response.headers['Content-Length'] = str(firmware.file.length)
-            response.headers['x-MD5'] = firmware.checksum
-            
-            return response
+                file_data = firmware.file.read()
+                
+                with open(file_path, 'wb') as f:
+                    f.write(file_data)
+                
+                # Stream the file
+                def generate_from_memory():
+                    chunk_size = 8192
+                    offset = 0
+                    while offset < len(file_data):
+                        chunk = file_data[offset:offset + chunk_size]
+                        offset += chunk_size
+                        yield chunk
+                
+                response = Response(
+                    stream_with_context(generate_from_memory()),
+                    mimetype='application/octet-stream'
+                )
+                
+                # Set headers
+                response.headers['Content-Type'] = 'application/octet-stream'
+                response.headers['Content-Length'] = str(firmware.file.length)
+                response.headers['x-MD5'] = firmware.checksum
+                
+                return response
             
         except Exception as e:
             return response_utils.get_response_object(
