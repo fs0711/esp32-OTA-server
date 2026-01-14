@@ -35,6 +35,5 @@ tomli
 typing_extensions
 Werkzeug
 WTForms
-newrelic
 wheel
 gunicorn
