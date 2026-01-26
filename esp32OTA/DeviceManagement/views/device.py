@@ -32,6 +32,14 @@ def read_view(data):
         data = request.form
     return DeviceController.read_controller(data=data)
 
+@device_bp.route("/read_min", methods=["GET", "POST"])
+@decorators.is_authenticated
+@decorators.keys_validator()
+def read_min_view(data):
+    if request.method == "POST":
+        data = request.form
+    return DeviceController.read_min_controller(data=data)
+
 
 @device_bp.route("/update", methods=["PUT"])
 @decorators.is_authenticated

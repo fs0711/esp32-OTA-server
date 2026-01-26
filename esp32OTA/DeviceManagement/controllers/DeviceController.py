@@ -90,6 +90,18 @@ class DeviceController(Controller):
                 obj.display() for obj in cls.db_read_records(read_filter=filter, deleted_records=False)
             ])
 
+    @classmethod
+    def read_min_controller(cls, data):
+        # user_childs =  UserController.get_users_childs_list()
+        filter = {}
+
+        return response_utils.get_response_object(
+            response_code=response_codes.CODE_SUCCESS,
+            response_message=response_codes.MESSAGE_SUCCESS,
+            response_data=[
+                obj.display_min() for obj in cls.db_read_records(read_filter=filter, deleted_records=False)
+            ])
+
 
     @classmethod
     def update_controller(cls, data):

@@ -63,7 +63,8 @@ class Device(models.Model):
             constants.DEVICE__UPDATE_PATH: self[constants.DEVICE__UPDATE_PATH],
             constants.DEVICE__FIRMWARE_FILE: str(self[constants.DEVICE__FIRMWARE_FILE].fetch().file_name) if self[constants.DEVICE__FIRMWARE_FILE] else "",
             constants.DEVICE__QR_CODE: self[constants.DEVICE__QR_CODE],
-            constants.DEVICE__CONNECTION: self[constants.DEVICE__CONNECTION]
+            constants.DEVICE__CONNECTION: self[constants.DEVICE__CONNECTION],
+            constants.DEVICE__SERIAL_NUMBER: self[constants.DEVICE__SERIAL_NUMBER]
         }
 
     def display_min(self):
@@ -72,6 +73,10 @@ class Device(models.Model):
             constants.DEVICE__ID: self[constants.DEVICE__ID],
             constants.DEVICE__NAME: self[constants.DEVICE__NAME],
             constants.CREATED_ON: self[constants.CREATED_ON],
+            constants.DEVICE__ACCESS_TOKEN: self[constants.DEVICE__ACCESS_TOKEN],
+            constants.DEVICE__TYPE: self[constants.DEVICE__TYPE],
+            constants.DEVICE__CONNECTION: self[constants.DEVICE__CONNECTION],
+            constants.DEVICE__SERIAL_NUMBER: self[constants.DEVICE__SERIAL_NUMBER]
         }
     
     def display_config(self):
