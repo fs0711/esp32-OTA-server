@@ -1,5 +1,6 @@
 from datetime import datetime
 from esp32OTA.DeviceManagement.controllers.DeviceController import DeviceController
+from esp32OTA.NotificationManagement.controller.NotificationsController import NotificationController
 
 
 def register_scheduled_tasks(scheduler):
@@ -14,6 +15,11 @@ def register_scheduled_tasks(scheduler):
     def update_offline_devices():
         print(f"[{datetime.now()}] Updating offline devices...")
         DeviceController.get_last_online()
+
+    @scheduler.task('interval', id='Email Notifications', minutes=1, misfire_grace_time=60)
+    def Send_notifications():
+        print(f"[{datetime.now()}] Sending notification emails...")
+        NotificationController.send_notifications()
 
     # # Example 3: Task that runs at a specific time every day
     # @scheduler.task('cron', id='daily_report', hour=0, minute=0, misfire_grace_time=900)

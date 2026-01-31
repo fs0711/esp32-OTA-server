@@ -3,6 +3,7 @@ from flask import Flask
 from flask_moment import Moment
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
+from flask_mail import Mail
 # Local imports
 from esp32OTA.generic.database import initialize_db
 from esp32OTA.config import config
@@ -24,6 +25,7 @@ initialize_db(app)
 moment = Moment(app)
 bcrypt = Bcrypt(app)
 app.config.update(config.MAIL_SETTINGS)
+mail = Mail(app)
 register_scripts()
 
 # Initialize scheduler for background tasks

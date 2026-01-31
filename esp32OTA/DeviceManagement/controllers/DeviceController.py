@@ -218,10 +218,20 @@ class DeviceController(Controller):
         
     @classmethod
     def get_last_online(cls):
+        from esp32OTA.NotificationManagement.controller.NotificationsController import NotificationController
         devices = cls.db_read_records(
             read_filter={constants.STATUS: constants.OBJECT_STATUS_ACTIVE})
         for device in devices:
             online = common_utils.get_last_update(device[constants.DEVICE__ACCESS_TOKEN])
+            if device[constants.DEVICE__CONNECTION]["status"] != online['status']:
+                # Create notification for device status change
+                notification_data = {
+                    constants.NOTIFICATION__TITLE: f"Device {device[constants.DEVICE__NAME]} is now {online['status']}",
+                    constants.NOTIFICATION__MESSAGE: f"The device '{device[constants.DEVICE__NAME]}' has changed its status to {online['status']} as of {online['last_update']}.",
+                    constants.NOTIFICATION__TYPE: "device_status_change",
+                    constants.NOTIFICATION__RELATED_DEVICE: device.id,
+                }
+                NotificationController.create_controller(notification_data)
             device[constants.DEVICE__CONNECTION] = online
             device.save()
         return True

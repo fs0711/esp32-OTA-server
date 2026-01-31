@@ -18,7 +18,7 @@ TOKEN_EXPIRY_TIME_WEB = 6
 TOKEN_EXPIRY_TIME_MOBILE = 30 #days
 TOKEN_EXPIRY_TIME_DEVICE = 365 #days
 # TOKEN_EXPIRY_TIME_EMAIL = 0.5
-DEVICE_OFFLINE_TIME = 10 #minutes
+DEVICE_OFFLINE_TIME = 2 #minutes
 
 
 CHECKSUM_ALGORITHM = "sha256"
@@ -71,6 +71,10 @@ MAIL_SETTINGS = {
     "MAIL_PORT": 465,
     "MAIL_USE_TLS": False,
     "MAIL_USE_SSL": True,
-    "MAIL_USERNAME": "admin@mail.com",
-    "MAIL_PASSWORD": "Admin@123"
+    "MAIL_USERNAME": "support@zvolta.com",
+    "MAIL_PASSWORD": "Okayker$123"
 }
+
+NOTIFICATION_MAIL_LIST = [
+    "iot@zvolta.com"
+]
