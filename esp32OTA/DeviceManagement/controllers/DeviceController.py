@@ -229,7 +229,7 @@ class DeviceController(Controller):
                     constants.NOTIFICATION__TITLE: f"Device {device[constants.DEVICE__NAME]} is now {online['status']}",
                     constants.NOTIFICATION__MESSAGE: f"The device '{device[constants.DEVICE__NAME]}' has changed its status to {online['status']} as of {online['last_update']}.",
                     constants.NOTIFICATION__TYPE: "device_status_change",
-                    constants.NOTIFICATION__RELATED_DEVICE: device.id,
+                    constants.NOTIFICATION__RELATED_DEVICE: str(device.id),
                 }
                 NotificationController.create_controller(notification_data)
             device[constants.DEVICE__CONNECTION] = online
