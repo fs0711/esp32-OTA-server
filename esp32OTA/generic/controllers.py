@@ -165,7 +165,7 @@ class Controller:
     @classmethod
     def db_insert_record(cls, data, collection=None, validation_rules=None,
                          default_validation=constants.DEFAULT_VALIDATION,
-                         db_commit=True):
+                         db_commit=True, user=True):
         """
         Create records in database with respect to collection
         :param collection:
@@ -181,13 +181,20 @@ class Controller:
             is_valid, error_messages = validate_data(
                 data, validation_rules)
         if is_valid:
-            data.update({
-                constants.STATUS: constants.OBJECT_STATUS_ACTIVE,
-                constants.CREATED_BY: common_utils.current_user(),
-                constants.UPDATED_BY: common_utils.current_user(),
-                constants.CREATED_ON: common_utils.get_time(),
-                constants.UPDATED_ON: common_utils.get_time(),
-            })
+            if user:
+                data.update({
+                    constants.STATUS: constants.OBJECT_STATUS_ACTIVE,
+                    constants.CREATED_BY: common_utils.current_user(),
+                    constants.UPDATED_BY: common_utils.current_user(),
+                    constants.CREATED_ON: common_utils.get_time(),
+                    constants.UPDATED_ON: common_utils.get_time(),
+                })
+            if not user:
+                data.update({
+                    constants.STATUS: constants.OBJECT_STATUS_ACTIVE,
+                    constants.CREATED_ON: common_utils.get_time(),
+                    constants.UPDATED_ON: common_utils.get_time(),
+                })
             obj = collection(**data)
             if db_commit:
                 obj.save()

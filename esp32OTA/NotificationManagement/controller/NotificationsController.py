@@ -20,7 +20,7 @@ class NotificationController(Controller):
     @classmethod
     def create_controller(cls, data):
         _, _, obj = cls.db_insert_record(
-                data=data, default_validation=False)
+                data=data, default_validation=False, user=False)
         obj.save()
         return response_utils.get_response_object(
             response_message=response_codes.MESSAGE_SUCCESS,
