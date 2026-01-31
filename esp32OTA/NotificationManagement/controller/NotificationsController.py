@@ -1,5 +1,6 @@
 # Python imports
 import re
+import logging
 from math import nan, isnan
 # Framework imports
 from flask_mail import Message
@@ -12,6 +13,9 @@ from esp32OTA.generic.services.utils import constants, response_codes, response_
 from esp32OTA import config
 from esp32OTA import mail
 from datetime import datetime
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 
 class NotificationController(Controller):
@@ -30,8 +34,16 @@ class NotificationController(Controller):
     
     @classmethod
     def send_notifications(cls):
+        start_time = datetime.now()
+        logger.info(f"[SCHEDULER] send_notifications task started at {start_time.strftime(config.DISPLAY_DATETIME_FORMAT)}")
+        print(f"[SCHEDULER] send_notifications task triggered at {start_time.strftime(config.DISPLAY_DATETIME_FORMAT)}")
+        
         notifications = cls.db_read_records(
             read_filter={constants.NOTIFICATION__SEND: False})
+        
+        logger.info(f"[SCHEDULER] Found {len(notifications)} notifications to send")
+        print(f"[SCHEDULER] Found {len(notifications)} unsent notifications")
+        
         for notification in notifications:
             # Send email notification
             try:
@@ -53,12 +65,19 @@ class NotificationController(Controller):
                     msg.body += f"\nRelated Device: {notification[constants.NOTIFICATION__RELATED_DEVICE]}"
                 
                 mail.send(msg)
+                logger.info(f"Email sent successfully for notification: {notification[constants.ID]}")
                 print(f"Email sent successfully for notification: {notification[constants.ID]}")
             except Exception as e:
+                logger.error(f"Failed to send email for notification {notification[constants.ID]}: {str(e)}")
                 print(f"Failed to send email for notification {notification[constants.ID]}: {str(e)}")
             
             # Mark notification as sent
             notification[constants.NOTIFICATION__SEND] = True
             notification.save()
+        
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+        logger.info(f"[SCHEDULER] send_notifications task completed at {end_time.strftime(config.DISPLAY_DATETIME_FORMAT)} (Duration: {duration}s)")
+        print(f"[SCHEDULER] Task completed. Processed {len(notifications)} notifications in {duration}s")
         
         return True

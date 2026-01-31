@@ -1,5 +1,5 @@
 # Framework imports
-from flask import Flask
+from flask import Flask, jsonify
 from flask_moment import Moment
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
@@ -29,5 +29,34 @@ mail = Mail(app)
 register_scripts()
 
 # Initialize scheduler for background tasks
-from esp32OTA.scheduler import init_scheduler
+from esp32OTA.scheduler import init_scheduler, scheduler
 init_scheduler(app)
+
+# Scheduler status endpoint
+@app.route('/scheduler/status', methods=['GET'])
+def scheduler_status():
+    """Get the current status of the scheduler and all scheduled jobs."""
+    try:
+        jobs = scheduler.get_jobs()
+        jobs_info = []
+        for job in jobs:
+            jobs_info.append({
+                'id': job.id,
+                'name': job.name,
+                'next_run_time': str(job.next_run_time) if job.next_run_time else None,
+                'trigger': str(job.trigger),
+                'pending': job.pending
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'scheduler_running': scheduler.running,
+            'scheduler_state': scheduler.state,
+            'total_jobs': len(jobs),
+            'jobs': jobs_info
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
