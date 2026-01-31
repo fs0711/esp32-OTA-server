@@ -43,39 +43,60 @@ else:
 def scheduler_status():
     """Get the current status of the scheduler and all scheduled jobs."""
     import os
+    import json
+    from datetime import datetime
     
-    if os.environ.get('SCHEDULER_ENABLED', 'false').lower() != 'true':
-        return jsonify({
-            'status': 'info',
-            'message': 'Scheduler not initialized in this worker',
-            'worker_pid': os.getpid(),
-            'scheduler_enabled': False
-        }), 200
+    current_worker_pid = os.getpid()
+    scheduler_enabled_here = os.environ.get('SCHEDULER_ENABLED', 'false').lower() == 'true'
+    
+    # Read all workers status from file
+    workers_status = []
+    worker_status_file = '/tmp/esp32ota_workers.json'
     
     try:
-        jobs = scheduler.get_jobs()
-        jobs_info = []
-        for job in jobs:
-            jobs_info.append({
-                'id': job.id,
-                'name': job.name,
-                'next_run_time': str(job.next_run_time) if job.next_run_time else None,
-                'trigger': str(job.trigger),
-                'pending': job.pending
-            })
-        
-        return jsonify({
-            'status': 'success',
-            'worker_pid': os.getpid(),
-            'scheduler_enabled': True,
-            'scheduler_running': scheduler.running,
-            'scheduler_state': scheduler.state,
-            'total_jobs': len(jobs),
-            'jobs': jobs_info
-        }), 200
+        if os.path.exists(worker_status_file):
+            with open(worker_status_file, 'r') as f:
+                workers_data = json.load(f)
+                for pid, info in workers_data.items():
+                    workers_status.append({
+                        'pid': info['pid'],
+                        'scheduler_enabled': info['scheduler_enabled'],
+                        'started_at': info['started_at'],
+                        'is_current_worker': info['pid'] == current_worker_pid
+                    })
     except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e),
-            'worker_pid': os.getpid()
-        }), 500
+        pass  # Continue even if reading fails
+    
+    # Get scheduler jobs info if this worker has scheduler enabled
+    jobs_info = []
+    scheduler_info = None
+    
+    if scheduler_enabled_here:
+        try:
+            jobs = scheduler.get_jobs()
+            for job in jobs:
+                jobs_info.append({
+                    'id': job.id,
+                    'name': job.name,
+                    'next_run_time': str(job.next_run_time) if job.next_run_time else None,
+                    'trigger': str(job.trigger),
+                    'pending': job.pending
+                })
+            
+            scheduler_info = {
+                'running': scheduler.running,
+                'state': scheduler.state,
+                'total_jobs': len(jobs),
+                'jobs': jobs_info
+            }
+        except Exception as e:
+            scheduler_info = {'error': str(e)}
+    
+    return jsonify({
+        'status': 'success',
+        'current_worker_pid': current_worker_pid,
+        'scheduler_enabled_in_current_worker': scheduler_enabled_here,
+        'total_workers': len(workers_status),
+        'workers': sorted(workers_status, key=lambda x: x['pid']),
+        'scheduler': scheduler_info
+    }), 200
