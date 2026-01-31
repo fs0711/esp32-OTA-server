@@ -4,7 +4,7 @@ import os
 os.environ["APP_ENVIRONMENT"] = "STAGING"
 
 bind = "unix:esp32ota.sock"
-workers = 5
+workers = 1
 timeout = 300
 accesslog = "/var/log/esp32ota/access.log"
 errorlog = "/var/log/esp32ota/error.log"
