@@ -28,14 +28,30 @@ app.config.update(config.MAIL_SETTINGS)
 mail = Mail(app)
 register_scripts()
 
-# Initialize scheduler for background tasks
+# Initialize scheduler for background tasks (only in designated worker)
+import os
 from esp32OTA.scheduler import init_scheduler, scheduler
-init_scheduler(app)
+
+if os.environ.get('SCHEDULER_ENABLED', 'false').lower() == 'true':
+    init_scheduler(app)
+    print(f"[SCHEDULER] Initialized in worker PID: {os.getpid()}")
+else:
+    print(f"[SCHEDULER] Skipped initialization in worker PID: {os.getpid()}")
 
 # Scheduler status endpoint
 @app.route('/scheduler/status', methods=['GET'])
 def scheduler_status():
     """Get the current status of the scheduler and all scheduled jobs."""
+    import os
+    
+    if os.environ.get('SCHEDULER_ENABLED', 'false').lower() != 'true':
+        return jsonify({
+            'status': 'info',
+            'message': 'Scheduler not initialized in this worker',
+            'worker_pid': os.getpid(),
+            'scheduler_enabled': False
+        }), 200
+    
     try:
         jobs = scheduler.get_jobs()
         jobs_info = []
@@ -50,6 +66,8 @@ def scheduler_status():
         
         return jsonify({
             'status': 'success',
+            'worker_pid': os.getpid(),
+            'scheduler_enabled': True,
             'scheduler_running': scheduler.running,
             'scheduler_state': scheduler.state,
             'total_jobs': len(jobs),
@@ -58,5 +76,6 @@ def scheduler_status():
     except Exception as e:
         return jsonify({
             'status': 'error',
-            'message': str(e)
+            'message': str(e),
+            'worker_pid': os.getpid()
         }), 500
