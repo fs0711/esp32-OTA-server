@@ -27,7 +27,7 @@ class Notification(models.Model):
     read = db.BooleanField(default=False)
     title = db.StringField(required=True)
     type = db.StringField(required=True)
-    related_device = db.ReferenceField('Device', required=False)
+    related_device = db.ReferenceField(document_type='Device')
     
     def __str__(self):
         return str(self.pk)
