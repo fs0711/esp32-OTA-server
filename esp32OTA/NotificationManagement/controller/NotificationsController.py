@@ -67,14 +67,12 @@ class NotificationController(Controller):
                 mail.send(msg)
                 logger.info(f"Email sent successfully for notification: {notification[constants.ID]}")
                 print(f"Email sent successfully for notification: {notification[constants.ID]}")
+                # Mark notification as sent
+                notification[constants.NOTIFICATION__SEND] = True
+                notification.save()
             except Exception as e:
                 logger.error(f"Failed to send email for notification {notification[constants.ID]}: {str(e)}")
                 print(f"Failed to send email for notification {notification[constants.ID]}: {str(e)}")
-            
-            # Mark notification as sent
-            notification[constants.NOTIFICATION__SEND] = True
-            notification.save()
-        
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
         logger.info(f"[SCHEDULER] send_notifications task completed at {end_time.strftime(config.DISPLAY_DATETIME_FORMAT)} (Duration: {duration}s)")

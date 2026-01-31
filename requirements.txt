@@ -37,3 +37,4 @@ Werkzeug
 WTForms
 wheel
 gunicorn
+redis
