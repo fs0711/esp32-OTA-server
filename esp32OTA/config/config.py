@@ -12,6 +12,7 @@ current_dir_path = os.path.dirname(os.path.abspath(__file__))
 static_data_path = os.path.join(current_dir_path, "static//static_data.json")
 upload_files_path = os.path.join(os.getcwd(), "//uploads")
 
+log_directory_path = "/var/log/esp32ota"
 
 #  EXPIRY TIME IN HOURS
 TOKEN_EXPIRY_TIME_WEB = 6
