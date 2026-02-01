@@ -48,7 +48,7 @@ class Device(models.Model):
             constants.ID: str(self[constants.ID]),
             constants.DEVICE__ID: self[constants.DEVICE__ID],
             constants.DEVICE__NAME: self[constants.DEVICE__NAME],
-            constants.DEVICE__TYPE: self[constants.DEVICE__TYPE],
+            constants.DEVICE__TYPE: self[constants.DEVICE__TYPE].fetch().device_type,
             constants.DEVICE__VARIABLES: self[constants.DEVICE__VARIABLES],
             constants.DEVICE__ACCESS_TOKEN: self[constants.DEVICE__ACCESS_TOKEN],
             constants.STATUS: self[constants.STATUS],
@@ -74,7 +74,7 @@ class Device(models.Model):
             constants.DEVICE__NAME: self[constants.DEVICE__NAME],
             constants.CREATED_ON: self[constants.CREATED_ON],
             constants.DEVICE__ACCESS_TOKEN: self[constants.DEVICE__ACCESS_TOKEN],
-            constants.DEVICE__TYPE: self[constants.DEVICE__TYPE],
+            constants.DEVICE__TYPE: self[constants.DEVICE__TYPE].fetch().device_type,
             constants.DEVICE__CONNECTION: self[constants.DEVICE__CONNECTION],
             constants.DEVICE__SERIAL_NUMBER: self[constants.DEVICE__SERIAL_NUMBER]
         }

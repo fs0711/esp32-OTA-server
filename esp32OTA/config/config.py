@@ -68,12 +68,12 @@ DEFAULT_ADMIN_COUNTRY = "Pakistan"
 # EMAIL_PASSWORD = "ppbackend123"
 
 MAIL_SETTINGS = {
-    "MAIL_SERVER": 'smtp.gmail.com',
+    "MAIL_SERVER": 'smtp-relay.gmail.com',
     "MAIL_PORT": 465,
     "MAIL_USE_TLS": False,
     "MAIL_USE_SSL": True,
     "MAIL_USERNAME": "support@zvolta.com",
-    "MAIL_PASSWORD": "Okayker$123"
+    "MAIL_PASSWORD": "fasdfghjkl12345@67890",
 }
 
 NOTIFICATION_MAIL_LIST = [
