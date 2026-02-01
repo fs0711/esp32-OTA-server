@@ -28,7 +28,7 @@ def create_view(data):
 @decorators.is_authenticated
 @decorators.keys_validator(
     [],
-    [],
+    constants.ALL_FIELDS_LIST__DEVICE,
     request_form_data=True
 )
 def read_view(data):
