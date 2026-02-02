@@ -76,7 +76,7 @@ class Controller:
         if not deleted_records:
             read_filter.update(
                 {constants.STATUS: constants.OBJECT_STATUS_ACTIVE})
-        return collection.objects(**read_filter).order_by('-id')
+        return collection.objects(**read_filter).order_by('id')
 
     @classmethod
     def db_update_single_record(cls, read_filter, update_filter,
