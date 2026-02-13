@@ -51,7 +51,13 @@ class DeviceController(Controller):
                                                                                             expiry_time=config.TOKEN_EXPIRY_TIME_DEVICE,
                                                                                             user=user)
         if token_is_valid:
-            data.update({constants.DEVICE__ACCESS_TOKEN:token[constants.TOKEN__ACCESS_TOKEN]})
+            data.update({
+                constants.DEVICE__CONNECTION: {
+                    "status": "offline",
+                    "last_update": "01-01-1970 00:00:00"
+                },
+                constants.DEVICE__ACCESS_TOKEN:token[constants.TOKEN__ACCESS_TOKEN]
+            })
             
             # Create device to get unique ID (device_id)
             _, _, obj = cls.db_insert_record(
@@ -60,10 +66,13 @@ class DeviceController(Controller):
             # Generate serial number using type_code and device_id
             type_code = device_type_obj.type_code
             # Extract numeric part from device_id (format: DV-XXX)
+            device_id = obj.device_id
             device_numeric_id = int(obj.device_id.split('-')[1]) if '-' in str(obj.device_id) else obj.id
             serial_number = common_utils.generate_device_serial(type_code, device_numeric_id)
             
             # Update device with serial number
+            if data[constants.DEVICE__NAME] is None:
+                obj.update(set__name=device_id)
             obj.update(set__serial_number=serial_number)
             obj.save()
             
