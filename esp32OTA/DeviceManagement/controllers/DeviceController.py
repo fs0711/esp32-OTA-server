@@ -71,7 +71,7 @@ class DeviceController(Controller):
             serial_number = common_utils.generate_device_serial(type_code, device_numeric_id)
             
             # Update device with serial number
-            if data[constants.DEVICE__NAME] is None:
+            if not data.get(constants.DEVICE__NAME):
                 obj.update(set__name=device_id)
             obj.update(set__serial_number=serial_number)
             obj.save()

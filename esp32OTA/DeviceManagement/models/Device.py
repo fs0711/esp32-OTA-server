@@ -13,7 +13,7 @@ class Device(models.Model):
     @classmethod
     def validation_rules(cls):
         return {
-            constants.DEVICE__NAME: [{"rule": "required"}, {"rule": "datatype", "datatype": str}],
+            constants.DEVICE__NAME: [{"rule": "datatype", "datatype": str}],
         }
 
 
@@ -23,7 +23,7 @@ class Device(models.Model):
     }
 
 
-    name = db.StringField(required=True)
+    name = db.StringField(default="")
     device_type = db.LazyReferenceField(document_type='DeviceType')
     variables = db.DictField(default={})
     device_id = db.SequenceField(value_decorator='DV-{}'.format)
