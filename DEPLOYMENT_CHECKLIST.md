@@ -83,7 +83,25 @@ curl http://your-server-ip:5000/api/static-data
 # Expected: Connection refused or timeout
 ```
 
-### 6. Test MQTT Authentication
+### 6. Setup Local MQTT Users (Optional but Recommended)
+```bash
+# Create local admin users for server monitoring/management
+sudo bash setup_local_mqtt_users.sh
+
+# This creates:
+# - Local admin user with full MQTT access
+# - Password file at /etc/mosquitto/auth/passwords
+# - ACL file at /etc/mosquitto/auth/acl
+
+# Test local user connection
+mosquitto_pub -h localhost -u "admin" -P "yourpassword" \
+    -t "system/test" -m "Hello"
+
+# Or use localhost-only port (no auth)
+mosquitto_pub -h localhost -p 1884 -t "system/test" -m "Hello"
+```
+
+### 7. Test MQTT Authentication
 ```bash
 # Generate HMAC password
 python generate_mqtt_password.py DV-001 <device-access-token>
@@ -111,6 +129,9 @@ journalctl -u mosquitto -f
 # Or check recent errors
 sudo tail -f /var/log/esp32ota/error.log
 sudo tail -f /var/log/nginx/ota.error.log
+
+# Monitor MQTT messages (requires local user setup)
+mosquitto_sub -h localhost -p 1884 -t "#" -v
 ```
 
 ## 🔒 Security Verification
@@ -161,6 +182,9 @@ sudo tail -f /var/log/nginx/ota.error.log
 - [ ] Device authentication succeeds with valid HMAC
 - [ ] Device authentication fails with invalid HMAC
 - [ ] Superuser endpoint responds correctly
+- [ ] Local admin user can access all topics (if configured)
+- [ ] Localhost-only port (1884) is accessible from server
+- [ ] Localhost-only port (1884) is NOT accessible remotely
 - [ ] ACL allows access to device-specific topics
 - [ ] ACL denies access to other device topics
 - [ ] Anonymous connections work (if enabled for testing)
@@ -244,6 +268,8 @@ curl http://your-server-ip:5000
 
 ## 📚 Documentation References
 
+- [LOCAL_MQTT_CLIENTS.md](LOCAL_MQTT_CLIENTS.md) - Local client connection guide
+- [MQTT_CONNECTION_SUMMARY.md](MQTT_CONNECTION_SUMMARY.md) - Visual connection summary
 - [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Complete deployment architecture
 - [MQTT_AUTH_README.md](MQTT_AUTH_README.md) - MQTT authentication details
 - [MQTT_QUICK_REFERENCE.md](MQTT_QUICK_REFERENCE.md) - Quick command reference

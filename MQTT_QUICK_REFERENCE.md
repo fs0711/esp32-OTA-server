@@ -11,7 +11,15 @@ HMAC-SHA256 based authentication for ESP32 devices connecting to MQTT broker.
 
 See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for complete architecture details.
 
-## 🔑 Authentication Method
+## 🔑 Authentication Methods
+
+### 1. File-Based (Local Server Clients)
+- **Username**: admin (or custom)
+- **Password**: Set via mosquitto_passwd
+- **Access**: All topics (#)
+- **Setup**: `sudo bash setup_local_mqtt_users.sh`
+
+### 2. HTTP Backend (ESP32 Devices)
 - **Username**: Device ID (e.g., `DV-001`)
 - **Password**: HMAC-SHA256(access_token, device_id)
 - **Algorithm**: HMAC-SHA256
@@ -44,17 +52,40 @@ sudo bash setup_mosquitto.sh
 setup_mosquitto.bat
 ```
 
-### 2. Generate MQTT Password
+### 2a. Setup Local Admin User (Server Access)
+```bash
+# Linux
+sudo bash setup_local_mqtt_users.sh
+
+# Windows (as Administrator)
+setup_local_mqtt_users.bat
+```
+
+### 2b. Generate MQTT Password (Device Access)
 ```bash
 python generate_mqtt_password.py DV-001 <access-token>
 ```
 
-### 3. Test Connection
-```bash
-# Using test script
-python test_mqtt_auth.py --device-id DV-001 --access-token <token>
+### 3. Test Connections
 
-# Using mosquitto_pub
+**Authenticated Client (Port 1883 - Required):**
+```bash
+# With credentials
+mosquitto_pub -h localhost -u "admin" -P "password" -t "system/test" -m "Hello"
+```
+
+**Local Server Client (Port 1884 - Localhost, No Auth):**
+```bash
+mosquitto_pub -h localhost -p 1884 -t "system/test" -m "Hello"
+```
+
+**Anonymous Testing (Port 1885 - DISABLE in Production):**
+```bash
+mosquitto_pub -h localhost -p 1885 -t "test/topic" -m "Hello"
+```
+
+**Device Client (Port 1883 - HMAC Auth):**
+```bash
 mosquitto_pub -h localhost -u "DV-001" -P "<hmac_password>" \
   -t "devices/DV-001/test" -m "Hello"
 ```
@@ -81,6 +112,20 @@ POST /api/mqtt/acl
 Body: username=DV-001&topic=devices/DV-001/data&acc=2
 Response: authorized=true/false
 ```
+
+## 🌐 Connection Ports
+
+### Port 1883 (Standard MQTT)
+- **Access**: External and localhost
+- **Auth**: Multiple backends (files + HTTP)
+- **Use**: Production device connections
+- **Clients**: ESP32 devices, authenticated users
+
+### Port 1884 (Localhost Only)
+- **Access**: localhost (127.0.0.1) only
+- **Auth**: None (anonymous allowed)
+- **Use**: Local server applications
+- **Clients**: Monitoring tools, admin scripts
 
 ## 🔐 HMAC Password Generation
 
@@ -136,7 +181,18 @@ auth_opt_http_port 5000
 auth_opt_http_getuser_uri /api/mqtt/auth
 auth_opt_http_superuser_uri /api/mqtt/superuser
 auth_opt_http_aclcheck_uri /api/mqtt/acl
+```Local Server Client (Full Access)
+```bash
+# Option 1: Localhost port (no auth needed)
+mosquitto_pub -h localhost -p 1884 -t "system/test" -m "Hello"
+mosquitto_sub -h localhost -p 1884 -t "#" -v
+
+# Option 2: With username/password
+mosquitto_pub -h localhost -u "admin" -P "password" -t "system/test" -m "Hello"
+mosquitto_sub -h localhost -u "admin" -P "password" -t "#" -v
 ```
+
+### Device Client (HMAC Authentication)
 
 ### Production Checklist
 - [ ] Set `allow_anonymous false`

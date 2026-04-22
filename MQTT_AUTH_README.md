@@ -18,6 +18,33 @@ This setup ensures:
 
 **Important:** Mosquitto must run on the **same server** as the backend. See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for complete setup instructions.
 
+## 🔐 Authentication Methods
+
+Mosquitto supports **two authentication backends** simultaneously:
+
+### 1. File-Based Authentication (Local Server Clients)
+- **Purpose**: Local admin users, monitoring tools, server scripts
+- **Access**: Full access to all topics (superuser)
+- **Credentials**: Username/password stored in `/etc/mosquitto/auth/passwords`
+- **Setup**: Run `setup_local_mqtt_users.sh` (Linux) or `setup_local_mqtt_users.bat` (Windows)
+
+**Use Cases:**
+- Server monitoring dashboards
+- Administrative scripts
+- Data logging services
+- Testing and debugging
+
+### 2. HTTP Backend Authentication (ESP32 Devices)
+- **Purpose**: IoT devices (ESP32)
+- **Access**: Limited to device-specific topics
+- **Credentials**: HMAC-SHA256 signature using device access_token
+- **Setup**: Automatically works when device is created via API
+
+**Use Cases:**
+- ESP32 firmware updates
+- Device telemetry
+- Device commands and control
+
 ## Endpoints
 
 ### 1. Authentication Endpoint
