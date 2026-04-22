@@ -4,7 +4,35 @@ import fcntl
 # Set environment variable for the application
 os.environ["APP_ENVIRONMENT"] = "STAGING"
 
-bind = "unix:esp32ota.sock"
+# ============================================================================
+# DUAL BINDING CONFIGURATION
+# ============================================================================
+# This application binds to TWO interfaces to support different use cases:
+#
+# 1. Unix Socket (unix:esp32ota.sock)
+#    - Used by: Nginx reverse proxy
+#    - Purpose: Web application traffic (HTTPS via nginx)
+#    - Security: File permissions-based access control
+#    - Performance: Efficient, no TCP overhead
+#
+# 2. Localhost HTTP (127.0.0.1:5000)
+#    - Used by: Mosquitto-go-auth plugin
+#    - Purpose: MQTT device authentication requests
+#    - Security: Localhost only - NOT exposed to external network
+#    - Performance: Standard HTTP over loopback interface
+#
+# IMPORTANT SECURITY NOTES:
+# - Port 5000 MUST be blocked from external access via firewall
+# - NEVER change 127.0.0.1 to 0.0.0.0 (would expose to internet)
+# - Mosquitto must run on the SAME server as this backend
+# - All web traffic should go through Nginx (HTTPS), not directly to :5000
+# ============================================================================
+
+bind = [
+    "unix:esp32ota.sock",      # Nginx reverse proxy
+    "127.0.0.1:5000"            # MQTT auth plugin (localhost only)
+]
+
 workers = 10
 timeout = 300
 accesslog = "/var/log/esp32ota/access.log"
