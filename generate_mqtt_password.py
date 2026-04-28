@@ -7,6 +7,8 @@ Usage:
     python generate_mqtt_password.py DV-001 <access-token>
     python generate_mqtt_password.py --device-id DV-001 --access-token <token>
 """
+Username:DV-2
+Password:be02b7980a06022bd48f6ef112fe2aa9668dc57e4abacd35e5396b778e488590
 
 import sys
 import argparse

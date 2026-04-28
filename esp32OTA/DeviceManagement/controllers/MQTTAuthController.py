@@ -31,9 +31,10 @@ class MQTTAuthController(Controller):
             )
         
         # Find device by device_id
+        device_numeric_id = int(username.split('-')[1]) if '-' in str(username) else username
         device_obj = cls.db_read_single_record(
             read_filter={
-                constants.DEVICE__ID: username,
+                constants.DEVICE__ID: device_numeric_id,
                 constants.STATUS: constants.OBJECT_STATUS_ACTIVE
             }
         )
