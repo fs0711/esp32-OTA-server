@@ -1,7 +1,8 @@
 from datetime import datetime
 from esp32OTA.DeviceManagement.controllers.DeviceController import DeviceController
 from esp32OTA.NotificationManagement.controller.NotificationsController import NotificationController
-
+from esp32OTA.Services.GatewayService import GatewayService
+import os
 
 def register_scheduled_tasks(scheduler):
     """
@@ -20,6 +21,10 @@ def register_scheduled_tasks(scheduler):
     def Send_notifications():
         print(f"[{datetime.now()}] Sending notification emails...")
         NotificationController.send_notifications()
+        
+    @scheduler.task('interval', id='gateway_device_polling', seconds=60, misfire_grace_time=120, max_instances=5)
+    def gateway_poll_task():
+        GatewayService.poll_devices()
 
     # # Example 3: Task that runs at a specific time every day
     # @scheduler.task('cron', id='daily_report', hour=0, minute=0, misfire_grace_time=900)

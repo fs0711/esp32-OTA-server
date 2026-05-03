@@ -85,8 +85,8 @@ register_scripts()
 # Initialize scheduler for background tasks (only in designated worker)
 import os
 from esp32OTA.scheduler import init_scheduler, scheduler
-
-if os.environ.get('SCHEDULER_ENABLED', 'false').lower() == 'true':
+if os.environ.get('SCHEDULER_ENABLED', 'true').lower() == 'true':
+#if os.environ.get('SCHEDULER_ENABLED', 'false').lower() == 'true':
     init_scheduler(app)
     print(f"[SCHEDULER] Initialized in worker PID: {os.getpid()}")
 else:

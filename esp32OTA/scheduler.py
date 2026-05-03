@@ -19,7 +19,9 @@ scheduler = APScheduler()
 def job_executed_listener(event):
     """Listener for successful job execution."""
     logger.info(f"[SCHEDULER EVENT] Job '{event.job_id}' executed successfully at {datetime.now()}")
-    print(f"[SCHEDULER EVENT] Job '{event.job_id}' executed successfully")
+    # Suppress redundant APScheduler success logs for polling as we now have custom brief logs
+    if event.job_id != 'gateway_device_polling':
+        print(f"[SCHEDULER EVENT] Job '{event.job_id}' executed successfully")
 
 
 def job_error_listener(event):
@@ -56,5 +58,13 @@ def init_scheduler(app):
     scheduler.start()
     logger.info("[SCHEDULER] Scheduler started successfully")
     print("[SCHEDULER] Scheduler started successfully")
+    
+    # Manually trigger the gateway polling task immediately after start
+    try:
+        from esp32OTA.Services.GatewayService import GatewayService
+        print("[SCHEDULER] Executing initial Gateway poll...")
+        GatewayService.poll_devices()
+    except Exception as e:
+        logger.error(f"[SCHEDULER] Failed to run initial poll: {str(e)}")
     
     return scheduler

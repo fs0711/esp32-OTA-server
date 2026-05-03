@@ -3,7 +3,7 @@ import os
 # Local imports
 
 
-# ENVIRONMENT = "LOCAL"
+#ENVIRONMENT = "LOCAL"
 ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "LOCAL")
 
 FUNCTION_LOGGING = False
@@ -15,6 +15,7 @@ upload_files_path = os.path.join(os.getcwd(), "//uploads")
 log_directory_path = "/var/log/esp32ota"
 
 #  EXPIRY TIME IN HOURS
+REQUEST_EXPIRY_TIME = 300 # 5 minutes
 TOKEN_EXPIRY_TIME_WEB = 6
 TOKEN_EXPIRY_TIME_MOBILE = 30 #days
 TOKEN_EXPIRY_TIME_DEVICE = 365 #days

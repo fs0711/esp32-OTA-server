@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MQTT Gateway Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    #status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-weight: 500;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    #status-badge.connected {
+      background: #14532d;
+      color: #4ade80;
+      border: 1px solid #166534;
+    }
+
+    #status-badge.disconnected {
+      background: #450a0a;
+      color: #f87171;
+      border: 1px solid #7f1d1d;
+    }
+
+    #status-badge::before {
+      content: '';
+      display: block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    #last-updated {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    #empty-state {
+      text-align: center;
+      padding: 4rem 0;
+      color: #475569;
+    }
+
+    #empty-state svg {
+      margin: 0 auto 1rem;
+      display: block;
+      opacity: 0.3;
+    }
+
+    #empty-state p { font-size: 1rem; }
+    #empty-state small { font-size: 0.8rem; margin-top: 0.4rem; display: block; }
+
+    #devices-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .device-card {
+      background: #1e2130;
+      border: 1px solid #2d3349;
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+
+    .device-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1rem;
+      background: #252a3d;
+      border-bottom: 1px solid #2d3349;
+    }
+
+    .device-id {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #93c5fd;
+    }
+
+    .device-id span {
+      font-weight: 400;
+      color: #64748b;
+      font-size: 0.8rem;
+      margin-right: 0.4rem;
+    }
+
+    .payload-tabs {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .tab-btn {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      border: 1px solid #374151;
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .tab-btn.active {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      color: #fff;
+    }
+
+    .tab-btn:hover:not(.active) {
+      background: #2d3349;
+      color: #e2e8f0;
+    }
+
+    .payload-panel {
+      display: none;
+      padding: 0.85rem 1rem;
+    }
+
+    .payload-panel.active { display: block; }
+
+    .payload-panel pre {
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #a5f3fc;
+    }
+
+    .no-payload {
+      color: #475569;
+      font-size: 0.8rem;
+      font-style: italic;
+      padding: 0.5rem 0;
+    }
+
+    .highlight-pulse {
+      animation: pulse-border 0.6s ease;
+    }
+
+    @keyframes pulse-border {
+      0%   { border-color: #3b82f6; }
+      100% { border-color: #2d3349; }
+    }
+
+    .online-badge, .offline-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+    }
+
+    .online-badge {
+      background: #14532d;
+      color: #4ade80;
+      border: 1px solid #166534;
+    }
+
+    .offline-badge {
+      background: #3b1f00;
+      color: #fb923c;
+      border: 1px solid #7c2d12;
+    }
+
+    .online-badge::before, .offline-badge::before {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .device-card-footer {
+      padding: 0.45rem 1rem;
+      font-size: 0.7rem;
+      color: #475569;
+      border-top: 1px solid #2d3349;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #broker-stats {
+      margin-bottom: 2rem;
+      background: #1e2130;
+      border: 1px solid #2d3349;
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    /* Tabs & Panels */
+    .dashboard-nav {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid #2d3349;
+      padding-bottom: 0.5rem;
+    }
+
+    .nav-link {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .nav-link.active {
+      background: #1e293b;
+      color: #3b82f6;
+    }
+
+    .section-panel {
+      display: none;
+    }
+
+    .section-panel.active {
+      display: block;
+    }
+
+    /* Logs & Config */
+    .code-editor {
+      background: #1e2130;
+      border: 1px solid #2d3349;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      font-family: 'Cascadia Code', monospace;
+      font-size: 0.85rem;
+      color: #a5f3fc;
+      width: 100%;
+      min-height: 400px;
+      outline: none;
+      resize: vertical;
+    }
+
+    .log-viewer {
+      background: #000;
+      color: #0f0;
+      height: 500px;
+      overflow-y: auto;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      font-family: monospace;
+    }
+
+    .action-bar {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-secondary { background: #475569; color: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MQTT Gateway</h1>
+    <span id="status-badge" class="disconnected">Disconnected</span>
+    <span id="last-updated"></span>
+  </header>
+
+  <nav class="dashboard-nav">
+    <div class="nav-link active" onclick="showSection('monitoring')">Monitoring</div>
+    <div class="nav-link" onclick="showSection('config')">Configuration</div>
+    <div class="nav-link" onclick="showSection('logs')">Live Logs</div>
+  </nav>
+
+  <div id="monitoring-section" class="section-panel active">
+    <!-- Existing Monitoring Content -->
+    <div id="broker-stats">
+      <div class="stat-item">
+        <span class="stat-label">Broker Version</span>
+        <span id="stat-version" class="stat-value">-</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Uptime</span>
+        <span id="stat-uptime" class="stat-value">-</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Connected Clients</span>
+        <span id="stat-clients" class="stat-value">-</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Messages (Sent/Recv)</span>
+        <span id="stat-msgs" class="stat-value">-</span>
+      </div>
+    </div>
+
+    <div id="empty-state">
+      <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V9m-9-6l6 6M9 3v6h6" />
+      </svg>
+      <p>No devices subscribed yet</p>
+      <small>Devices will appear automatically once they publish to <code>devices/{id}/status</code></small>
+    </div>
+
+    <div id="devices-grid"></div>
+  </div>
+
+  <div id="config-section" class="section-panel">
+    <textarea id="config-editor" class="code-editor" placeholder="Loading configuration..."></textarea>
+    <div class="action-bar">
+      <span id="config-status" style="margin-right: auto; font-size: 0.9rem;"></span>
+      <button class="btn btn-secondary" onclick="fetchConfig()">Reset</button>
+      <button class="btn btn-primary" onclick="saveConfig()">Save & Dry-Run</button>
+    </div>
+  </div>
+
+  <div id="logs-section" class="section-panel">
+    <div id="log-viewer" class="log-viewer">
+      <div style="color: grey;">Waiting for logs...</div>
+    </div>
+  </div>
+
+  <script>
+    function showSection(sectionId) {
+      document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      
+      document.getElementById(`${sectionId}-section`).classList.add('active');
+      event.target.classList.add('active');
+
+      if (sectionId === 'config') fetchConfig();
+      if (sectionId === 'logs') startLogsPulse();
+      else stopLogsPulse();
+    }
+
+    let logsInterval = null;
+    function startLogsPulse() {
+      if (logsInterval) return;
+      fetchLogs();
+      logsInterval = setInterval(fetchLogs, 3000);
+    }
+    function stopLogsPulse() {
+      clearInterval(logsInterval);
+      logsInterval = null;
+    }
+
+    async function fetchConfig() {
+      const editor = document.getElementById('config-editor');
+      try {
+        const res = await fetch('/api/gateway/config');
+        const data = await res.json();
+        editor.value = data.response_data.content;
+      } catch (e) { console.error(e); }
+    }
+
+    async function saveConfig() {
+      const content = document.getElementById('config-editor').value;
+      const status = document.getElementById('config-status');
+      status.textContent = "Saving...";
+      try {
+        const res = await fetch('/api/gateway/config', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({content})
+        });
+        const data = await res.json();
+        status.textContent = data.response_message;
+        status.style.color = data.response_code === 200 ? '#4ade80' : '#f87171';
+      } catch (e) { status.textContent = "Error saving"; }
+    }
+
+    async function fetchLogs() {
+      const viewer = document.getElementById('log-viewer');
+      try {
+        const res = await fetch('/api/gateway/logs');
+        const data = await res.json();
+        if (data.logs && data.logs.length > 0) {
+          viewer.innerHTML = data.logs.map(l => `<div>${l}</div>`).join('');
+          viewer.scrollTop = viewer.scrollHeight;
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    const grid = document.getElementById('devices-grid');
+    const badge = document.getElementById('status-badge');
+    const lastUpdated = document.getElementById('last-updated');
+    const emptyState = document.getElementById('empty-state');
+
+    // Track active tab per device
+    const activeTabs = {};
+
+    function formatJSON(obj) {
+      return JSON.stringify(obj, null, 2);
+    }
+
+    function setTab(deviceId, type) {
+      activeTabs[deviceId] = type;
+      const card = document.getElementById(`card-${deviceId}`);
+      if (!card) return;
+      card.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+      });
+      card.querySelectorAll('.payload-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.dataset.type === type);
+      });
+    }
+
+    function formatLastSeen(isoStr) {
+      if (!isoStr) return 'Never';
+      const d = new Date(isoStr);
+      return d.toLocaleTimeString();
+    }
+
+    function renderCard(device, existing) {
+      const { id, payloads, online, last_seen } = device;
+      const defaultTab = activeTabs[id] || (payloads.status ? 'status' : payloads.usage ? 'usage' : 'status');
+
+      const statusJSON = payloads.status ? formatJSON(payloads.status) : null;
+      const usageJSON  = payloads.usage  ? formatJSON(payloads.usage)  : null;
+      const badgeHtml  = online
+        ? `<span class="online-badge">Online</span>`
+        : `<span class="offline-badge">Offline</span>`;
+      const lastSeenTxt = `Last seen: ${formatLastSeen(last_seen)}`;
+
+      if (existing) {
+        const statusPre = existing.querySelector('[data-type="status"] pre');
+        const usagePre  = existing.querySelector('[data-type="usage"] pre');
+        const prevStatus = statusPre?.textContent;
+        const prevUsage  = usagePre?.textContent;
+
+        if (statusPre) {
+            if (statusJSON) {
+                statusPre.textContent = statusJSON;
+            } else {
+                // Keep existing text if we have no new status payload? Or clear it?
+                // The template suggested "No status payload received yet"
+            }
+        }
+        if (usagePre) {
+            if (usageJSON) {
+                usagePre.textContent = usageJSON;
+            }
+        }
+
+        // Update heartbeat badge and last seen
+        const badgeEl   = existing.querySelector('.hb-badge');
+        const footerEl  = existing.querySelector('.hb-last-seen');
+        if (badgeEl)  badgeEl.innerHTML  = badgeHtml;
+        if (footerEl) footerEl.textContent = lastSeenTxt;
+
+        if (prevStatus !== statusPre?.textContent || prevUsage !== usagePre?.textContent) {
+          existing.classList.remove('highlight-pulse');
+          void existing.offsetWidth;
+          existing.classList.add('highlight-pulse');
+        }
+        return;
+      }
+
+      const card = document.createElement('div');
+      card.className = 'device-card';
+      card.id = `card-${id}`;
+
+      card.innerHTML = `
+        <div class="device-card-header">
+          <span class="device-id"><span>Device</span>${id}</span>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <span class="hb-badge">${badgeHtml}</span>
+            <div class="payload-tabs">
+              <button class="tab-btn ${defaultTab === 'status' ? 'active' : ''}" data-type="status" onclick="setTab('${id}', 'status')">Status</button>
+              <button class="tab-btn ${defaultTab === 'usage'  ? 'active' : ''}" data-type="usage"  onclick="setTab('${id}', 'usage')">Usage</button>
+            </div>
+          </div>
+        </div>
+        <div class="payload-panel ${defaultTab === 'status' ? 'active' : ''}" data-type="status">
+          ${statusJSON ? `<pre>${statusJSON}</pre>` : `<p class="no-payload">No status payload received yet</p>`}
+        </div>
+        <div class="payload-panel ${defaultTab === 'usage' ? 'active' : ''}" data-type="usage">
+          ${usageJSON  ? `<pre>${usageJSON}</pre>`  : `<p class="no-payload">No usage payload received yet</p>`}
+        </div>
+        <div class="device-card-footer">
+          <span class="hb-last-seen">${lastSeenTxt}</span>
+        </div>`;
+
+      grid.appendChild(card);
+    }
+
+    async function poll() {
+      try {
+        const res = await fetch('/api/gateway/data');
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+
+        // Update MQTT badge
+        badge.textContent = data.mqtt_connected ? 'MQTT Connected' : 'MQTT Disconnected';
+        badge.className = `${data.mqtt_connected ? 'connected' : 'disconnected'}`;
+
+        const now = new Date();
+        lastUpdated.textContent = `Updated ${now.toLocaleTimeString()}`;
+
+        // Update Broker Stats
+        const statsPanel = document.getElementById('broker-stats');
+        if (data.broker_stats && Object.keys(data.broker_stats).length > 0) {
+          statsPanel.style.display = 'grid';
+          document.getElementById('stat-version').textContent = data.broker_stats['version'] || '-';
+          document.getElementById('stat-uptime').textContent = data.broker_stats['uptime'] || '-';
+          document.getElementById('stat-clients').textContent = data.broker_stats['clients/connected'] || '0';
+          const sent = data.broker_stats['messages/sent'] || '0';
+          const recv = data.broker_stats['messages/received'] || '0';
+          document.getElementById('stat-msgs').textContent = `${sent} / ${recv}`;
+        } else {
+          statsPanel.style.display = 'none';
+        }
+
+        emptyState.style.display = (!data.devices || data.devices.length === 0) ? 'block' : 'none';
+        grid.style.display = (!data.devices || data.devices.length === 0) ? 'none' : 'grid';
+
+        if (data.devices) {
+            // Track rendered device IDs to remove stale cards
+            const currentIds = new Set(data.devices.map(d => d.id));
+            grid.querySelectorAll('.device-card').forEach(card => {
+              const id = card.id.replace('card-', '');
+              if (!currentIds.has(id)) card.remove();
+            });
+
+            for (const device of data.devices) {
+              const existing = document.getElementById(`card-${device.id}`);
+              renderCard(device, existing);
+            }
+        }
+      } catch (err) {
+        console.error(err);
+        badge.textContent = 'Gateway Unreachable';
+        badge.className = 'disconnected';
+      }
+    }
+
+    poll();
+    setInterval(poll, 1000);
+  </script>
+</body>
+</html>

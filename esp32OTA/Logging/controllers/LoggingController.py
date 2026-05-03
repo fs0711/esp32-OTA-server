@@ -7,12 +7,25 @@ from flask import Response, stream_with_context
 # Local imports
 from ast import Constant
 from esp32OTA.generic.controllers import Controller
-from esp32OTA.Logging.models.Logging import Logging
+from esp32OTA.Logging.models.Logging import GatewayLogging
 from esp32OTA.generic.services.utils import constants, response_codes, response_utils, common_utils, pipeline
 
 
 class LoggingController(Controller):
-    Model = Logging # type: ignore[assignment]
+    Model = GatewayLogging # type: ignore[assignment]
+
+    @classmethod
+    def log_gateway_activity(cls, payload, log_type):
+        """
+        Internal method to save gateway activity to DB.
+        """
+        data = {
+            "payload": str(payload),
+            "log_type": log_type
+        }
+        _, _, obj = cls.db_insert_file(
+            data=data, default_validation=False)
+        return obj
 
     @classmethod
     def log_controller(cls, data):

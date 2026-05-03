@@ -7,13 +7,13 @@ Usage:
     python generate_mqtt_password.py DV-001 <access-token>
     python generate_mqtt_password.py --device-id DV-001 --access-token <token>
 """
-Username:DV-2
-Password:be02b7980a06022bd48f6ef112fe2aa9668dc57e4abacd35e5396b778e488590
 
 import sys
 import argparse
 import hmac
 import hashlib
+import time
+import base64
 
 
 def generate_hmac_password(device_id, access_token):
@@ -27,47 +27,44 @@ def generate_hmac_password(device_id, access_token):
     Returns:
         str: HMAC-SHA256 hexdigest
     """
+    # Use device_id as the message
+    message = device_id
+    
     signature = hmac.new(
         access_token.encode('utf-8'),
-        device_id.encode('utf-8'),
+        message.encode('utf-8'),
         hashlib.sha256
     ).hexdigest()
-    return signature
+    
+    # Generate a simple reversible "hash" (Base64 encoded) timestamp
+    timestamp = str(int(time.time()))
+    encoded_timestamp = base64.b64encode(timestamp.encode()).decode().rstrip('=')
+    
+    # Append the reversible timestamp to the HMAC signature
+    return f"{signature}:{encoded_timestamp}"
 
 
 def main():
-    # Check if called with positional arguments
-    if len(sys.argv) == 3 and not sys.argv[1].startswith('--'):
-        device_id = sys.argv[1]
-        access_token = sys.argv[2]
-    else:
-        # Use argparse for named arguments
-        parser = argparse.ArgumentParser(
-            description='Generate HMAC-SHA256 password for MQTT authentication'
-        )
-        parser.add_argument(
-            '--device-id',
-            required=True,
-            help='Device ID (MQTT username)'
-        )
-        parser.add_argument(
-            '--access-token',
-            required=True,
-            help='Device access token (HMAC secret key)'
-        )
-        parser.add_argument(
-            '--format',
-            choices=['plain', 'json', 'env'],
-            default='plain',
-            help='Output format (default: plain)'
-        )
-        
-        args = parser.parse_args()
-        device_id = args.device_id
-        access_token = args.access_token
-        output_format = args.format if hasattr(args, 'format') else 'plain'
+    # Fix: Remove broken lines and add interactive prompts
+    print("\n--- MQTT Password Generator ---")
+    device_input = input("Enter Device ID or Number (e.g., 1 or DV-1): ").strip()
     
-    # Generate HMAC password
+    # Ensure format is always DV-X
+    if device_input.isdigit():
+        device_id = f"DV-{device_input}"
+    elif device_input.upper().startswith("DV-"):
+        device_id = f"DV-{device_input.upper().replace('DV-', '')}"
+    else:
+        device_id = device_input
+
+    access_token = input("Enter Access Token: ").strip()
+    output_format = 'plain'
+
+    if not device_id or not access_token:
+        print("Error: Both Device ID and Access Token are required.")
+        return
+    
+    # Generate HMAC password using id and token
     password = generate_hmac_password(device_id, access_token)
     
     # Output based on format

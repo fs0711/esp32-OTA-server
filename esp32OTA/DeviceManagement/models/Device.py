@@ -39,6 +39,7 @@ class Device(models.Model):
     fw_file = db.LazyReferenceField(document_type='Firmware')
     qr_code = db.StringField(default="")
     connection = db.DictField(default={})
+    client_id = db.StringField(default="")
 
     def __str__(self):
         return str(self.pk)
@@ -64,7 +65,8 @@ class Device(models.Model):
             constants.DEVICE__FIRMWARE_FILE: str(self[constants.DEVICE__FIRMWARE_FILE].fetch().file_name) if self[constants.DEVICE__FIRMWARE_FILE] else "",
             constants.DEVICE__QR_CODE: self[constants.DEVICE__QR_CODE],
             constants.DEVICE__CONNECTION: self[constants.DEVICE__CONNECTION],
-            constants.DEVICE__SERIAL_NUMBER: self[constants.DEVICE__SERIAL_NUMBER]
+            constants.DEVICE__SERIAL_NUMBER: self[constants.DEVICE__SERIAL_NUMBER],
+            constants.DEVICE__CLIENT_ID: self[constants.DEVICE__CLIENT_ID]
         }
 
     def display_min(self):
@@ -76,7 +78,8 @@ class Device(models.Model):
             constants.DEVICE__ACCESS_TOKEN: self[constants.DEVICE__ACCESS_TOKEN],
             constants.DEVICE__TYPE: self[constants.DEVICE__TYPE].fetch().device_type,
             constants.DEVICE__CONNECTION: self[constants.DEVICE__CONNECTION],
-            constants.DEVICE__SERIAL_NUMBER: self[constants.DEVICE__SERIAL_NUMBER]
+            constants.DEVICE__SERIAL_NUMBER: self[constants.DEVICE__SERIAL_NUMBER],
+            constants.DEVICE__CLIENT_ID: self[constants.DEVICE__CLIENT_ID]
         }
     
     def display_config(self):
@@ -90,4 +93,5 @@ class Device(models.Model):
             constants.DEVICE__FIRMWARE_FILE: str(self[constants.DEVICE__FIRMWARE_FILE].fetch().id) if self[constants.DEVICE__FIRMWARE_FILE] else "",
             constants.DEVICE__QR_CODE: self[constants.DEVICE__QR_CODE],
             constants.DEVICE__VARIABLES: self[constants.DEVICE__VARIABLES],
+            constants.DEVICE__CLIENT_ID: self[constants.DEVICE__CLIENT_ID]
         }

@@ -186,12 +186,18 @@ def get_last_update(token):
     }
 
 def current_user():
-    user = __global__.get_current_user()
-    if user:
-        return user
-    token_obj, _ = get_token()
-    if token_obj:
-        return token_obj[constants.TOKEN__USER].fetch()
+    try:
+        from flask import has_request_context
+        if not has_request_context():
+            return None
+        user = __global__.get_current_user()
+        if user:
+            return user
+        token_obj, _ = get_token()
+        if token_obj:
+            return token_obj[constants.TOKEN__USER].fetch()
+    except Exception:
+        pass
     print('User not found')
     return None
 
