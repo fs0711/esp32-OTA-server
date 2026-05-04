@@ -28,6 +28,7 @@ mypy_extensions
 newrelic
 packaging
 pathspec
+paho-mqtt>=2.1.0
 platformdirs
 pycodestyle
 pycparser
@@ -44,7 +45,7 @@ typing_extensions
 tzdata
 tzlocal
 urllib3
-paho-mqtt
+paho-mqtt>=2.1.0
 Werkzeug
 wheel
 WTForms
