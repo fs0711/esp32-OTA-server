@@ -29,8 +29,8 @@ class MQTTClientService:
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
         
-        self.broker_host = "192.168.100.195" 
-        self.broker_port = 1885 # Testing port as per mosquitto.conf
+        self.broker_host = "127.0.0.1" 
+        self.broker_port = 1884 # Testing port as per mosquitto.conf
         
         self.broker_stats = {}
         self.device_data = {}
