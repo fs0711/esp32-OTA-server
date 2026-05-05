@@ -69,9 +69,11 @@ def assign_to_device_type_view(data):
 @decorators.is_authenticated
 @decorators.keys_validator(
     [constants.ID],
-    [],
-    request_form_data=True
+    ["chunk_size"],
+    request_form_data=False
 )
 def download_firmware_view(data):
+    # Forward all incoming request headers to the controller
+    data['headers'] = dict(request.headers)
     return FirmwareController.download_firmware(data=data)
 

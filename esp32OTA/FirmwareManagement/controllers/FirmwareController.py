@@ -187,87 +187,114 @@ class FirmwareController(Controller):
     def download_firmware(cls, data):
         try:
             firmware_id = data[constants.ID]
-            
-            # Check local storage first
-            firmware_dir = os.path.join(os.getcwd(), 'firmware_files')
-            file_path = os.path.join(firmware_dir, str(firmware_id))
-            
+            incoming_headers = data.get('headers', {})
+
             # Retrieve firmware record for metadata
             firmware = Firmware.objects(
                 id=firmware_id,
                 status=constants.OBJECT_STATUS_ACTIVE
             ).first()
-            
+
             if not firmware:
                 return response_utils.get_response_object(
                     response_code=response_codes.CODE_RECORD_NOT_FOUND,
                     response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
                         constants.FIRMWARE.title(), constants.ID
                     ))
-            
-            # Check if file exists in local storage
-            if os.path.exists(file_path):
-                # Stream from local storage
-                def generate_from_file():
-                    chunk_size = 8192
-                    with open(file_path, 'rb') as f:
-                        while True:
-                            chunk = f.read(chunk_size)
-                            if not chunk:
-                                break
-                            yield chunk
-                
-                response = Response(
-                    stream_with_context(generate_from_file()),
-                    mimetype='application/octet-stream'
-                )
-                
-                # Set headers
-                response.headers['Content-Type'] = 'application/octet-stream'
-                response.headers['Content-Length'] = str(os.path.getsize(file_path))
-                response.headers['x-MD5'] = firmware.checksum
-                
-                return response
-            
-            else:
-                # File not in local storage, check database
+
+            # Ensure file exists in local storage; cache from DB if missing
+            firmware_dir = os.path.join(os.getcwd(), 'firmware_files')
+            file_path = os.path.join(firmware_dir, str(firmware_id))
+
+            if not os.path.exists(file_path):
                 if not firmware.file:
                     return response_utils.get_response_object(
                         response_code=response_codes.CODE_RECORD_NOT_FOUND,
                         response_message="Firmware file not found"
                     )
-                
-                # Create firmware_files directory if it doesn't exist
                 os.makedirs(firmware_dir, exist_ok=True)
-                
-                # Download from database to local storage
                 firmware.file.seek(0)
-                file_data = firmware.file.read()
-                
                 with open(file_path, 'wb') as f:
-                    f.write(file_data)
-                
-                # Stream the file
-                def generate_from_memory():
-                    chunk_size = 8192
-                    offset = 0
-                    while offset < len(file_data):
-                        chunk = file_data[offset:offset + chunk_size]
-                        offset += chunk_size
-                        yield chunk
-                
+                    f.write(firmware.file.read())
+
+            file_size = os.path.getsize(file_path)
+
+            # --- Range request (ESP32 chunked OTA) ---
+            range_header = incoming_headers.get('Range') or incoming_headers.get('range')
+            if range_header:
+                match = re.match(r'bytes=(\d+)-(\d+)', range_header.strip())
+                if not match:
+                    response = Response("Invalid Range header", status=416)
+                    response.headers['Content-Range'] = f'bytes */{file_size}'
+                    return response
+
+                range_start = int(match.group(1))
+                range_end = int(match.group(2))
+
+                # Clamp end to last valid byte
+                range_end = min(range_end, file_size - 1)
+
+                if range_start >= file_size or range_start > range_end:
+                    response = Response("Range Not Satisfiable", status=416)
+                    response.headers['Content-Range'] = f'bytes */{file_size}'
+                    return response
+
+                content_length = range_end - range_start + 1
+
+                def generate_range():
+                    with open(file_path, 'rb') as f:
+                        f.seek(range_start)
+                        remaining = content_length
+                        while remaining > 0:
+                            chunk = f.read(min(4096, remaining))
+                            if not chunk:
+                                break
+                            remaining -= len(chunk)
+                            yield chunk
+
                 response = Response(
-                    stream_with_context(generate_from_memory()),
+                    stream_with_context(generate_range()),
+                    status=206,
                     mimetype='application/octet-stream'
                 )
-                
-                # Set headers
+                response.headers['Content-Range'] = f'bytes {range_start}-{range_end}/{file_size}'
+                response.headers['Content-Length'] = str(content_length)
                 response.headers['Content-Type'] = 'application/octet-stream'
-                response.headers['Content-Length'] = str(firmware.file.length)
+                response.headers['Accept-Ranges'] = 'bytes'
                 response.headers['x-MD5'] = firmware.checksum
-                
                 return response
-            
+
+            # --- Full-file fallback (no Range header) ---
+            raw_chunk_size = (
+                data.get('chunk_size')
+                or incoming_headers.get('X-Chunk-Size')
+                or incoming_headers.get('x-chunk-size')
+                or 4096
+            )
+            try:
+                chunk_size = int(raw_chunk_size)
+            except (ValueError, TypeError):
+                chunk_size = 4096
+            chunk_size = max(256, min(chunk_size, 4096))
+
+            def generate_full():
+                with open(file_path, 'rb') as f:
+                    while True:
+                        chunk = f.read(chunk_size)
+                        if not chunk:
+                            break
+                        yield chunk
+
+            response = Response(
+                stream_with_context(generate_full()),
+                mimetype='application/octet-stream'
+            )
+            response.headers['Content-Type'] = 'application/octet-stream'
+            response.headers['Content-Length'] = str(file_size)
+            response.headers['Accept-Ranges'] = 'bytes'
+            response.headers['x-MD5'] = firmware.checksum
+            return response
+
         except Exception as e:
             return response_utils.get_response_object(
                 response_code=response_codes.CODE_EXCEPTION,
