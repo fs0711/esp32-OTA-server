@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MQTT Gateway</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-card {
+            background: #1a1d27;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #2d313d;
+        }
+        h2 { text-align: center; margin-bottom: 1.5rem; color: #4ade80; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; }
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #2d313d;
+            background: #0f1117;
+            color: white;
+            outline: none;
+        }
+        input:focus { border-color: #4ade80; }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #4ade80;
+            color: #0f1117;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        #error-msg {
+            color: #ef4444;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>ZVOLTA Gateway</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="email" required placeholder="admin@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" required placeholder="••••••••">
+            </div>
+            <button type="submit">Login to Dashboard</button>
+            <div id="error-msg">Invalid credentials. Please try again.</div>
+        </form>
+    </div>
+
+    <script>
+        // Check for existing token on load
+        const savedToken = localStorage.getItem('access_token');
+        if (savedToken) {
+            window.location.href = '/gateway';
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('error-msg');
+
+            try {
+                const response = await fetch('/api/users/login/web', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email_address: email, 
+                        password: password 
+                    })
+                });
+
+                const result = await response.json();
+                
+                // Handling the specific response structure you provided
+                if (result.response_code === 200 && result.response_data && result.response_data.access_token) {
+                    // Save the token to localStorage
+                    localStorage.setItem('access_token', result.response_data.access_token);
+                    
+                    // Redirect to the dashboard
+                    window.location.href = '/gateway';
+                } else {
+                    errorMsg.style.display = 'block';
+                    errorMsg.textContent = result.response_message || 'Login failed';
+                }
+            } catch (error) {
+                errorMsg.style.display = 'block';
+                errorMsg.textContent = 'Connection error. Try again.';
+            }
+        });
+    </script>
+</body>
+</html>

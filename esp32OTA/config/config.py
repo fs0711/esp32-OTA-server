@@ -40,6 +40,9 @@ FILTER_DATETIME_FORMAT = "%d %m %Y %H:%M:%S"
 TIME_ZONE = "Asia/Karachi"
 
 FRONTEND_URL = "https://iot.digtrosoft.com"
+MQTT_BROKER_HOST = "192.168.1.118"
+MQTT_BROKER_PORT = 1885
+ORKOFLEET_BASE_URL = "https://smartswitch.orkofleet.com"
 MONGO_DB_USER = "zvolta_admin"
 MONGO_DB_PASSWORD = "Frig3ahpHed9kUMJ"
 DATABASE_NAME = "ESP32OTA"

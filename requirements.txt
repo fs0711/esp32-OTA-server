@@ -45,7 +45,6 @@ typing_extensions
 tzdata
 tzlocal
 urllib3
-paho-mqtt>=2.1.0
 Werkzeug
 wheel
 WTForms

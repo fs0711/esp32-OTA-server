@@ -301,3 +301,33 @@ class UserController(Controller):
             user=common_utils.current_user(), return_self=True)
         child_list = [user.display() for user in user_childs]
         return child_list
+
+    @classmethod
+    def admin_reset_password_controller(cls, data):
+        """Admin directly sets a new password for a user without knowing the old one."""
+        if not data.get(constants.ID) or not data.get(constants.USER__PASSWORD):
+            return response_utils.get_json_response_object(
+                response_code=response_codes.CODE_VALIDATION_FAILED,
+                response_message=response_codes.MESSAGE_VALIDATION_FAILED,
+                response_data={
+                    constants.ID: "User ID is required",
+                    constants.USER__PASSWORD: "New password is required"
+                }
+            )
+        
+        user = cls.db_read_single_record(read_filter={constants.ID: data[constants.ID]})
+        if not user:
+             return response_utils.get_json_response_object(
+                response_code=response_codes.CODE_RECORD_NOT_FOUND,
+                response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format("User", constants.ID)
+            )
+
+        # Hash and save the new password provided by Admin
+        user[constants.USER__PASSWORD] = common_utils.encrypt_password(data[constants.USER__PASSWORD])
+        user.save()
+
+        return response_utils.get_json_response_object(
+            response_code=response_codes.CODE_SUCCESS,
+            response_message="User password updated successfully by Admin",
+            response_data=user.display()
+        )

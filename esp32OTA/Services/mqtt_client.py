@@ -29,8 +29,8 @@ class MQTTClientService:
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
         
-        self.broker_host = "127.0.0.1" 
-        self.broker_port = 1884 # Testing port as per mosquitto.conf
+        self.broker_host = getattr(config, 'MQTT_BROKER_HOST')
+        self.broker_port = getattr(config, 'MQTT_BROKER_PORT')
         
         self.broker_stats = {}
         self.device_data = {}
@@ -152,7 +152,6 @@ class MQTTClientService:
                     "signal_type": "wifi" if item.get("sg") == "w" else item.get("sg"), # sg -> signal_type
                     "e": item.get("e", [])
                 })
-
             payload = {
                 "c_s_id": int(client_id) if str(client_id).isdigit() else client_id,
                 "s": mapped_s,
@@ -160,7 +159,8 @@ class MQTTClientService:
             }
 
             # 3. Post to API
-            api_url = "https://smartswitch.orkofleet.com/api/v2/power-sockets/status"
+            base_url = getattr(config, 'ORKOFLEET_BASE_URL')
+            api_url = f"{base_url}/api/v2/power-sockets/status"
             headers = {
                 "Content-Type": "application/json"
             }
@@ -214,7 +214,8 @@ class MQTTClientService:
                 "is_completed": usage_inner.get("is")
             }
 
-            api_url = "https://smartswitch.orkofleet.com/api/v2/charge-sessions/add-usage-data"
+            base_url = getattr(config, 'ORKOFLEET_BASE_URL')
+            api_url = f"{base_url}/api/v2/charge-sessions/add-usage-data"
             headers = {"Content-Type": "application/json"}
             
             logger.info(f"[MQTT] -> Usage API Payload: {json.dumps(payload)}")

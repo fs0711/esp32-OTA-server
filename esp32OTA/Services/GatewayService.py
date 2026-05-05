@@ -53,7 +53,9 @@ class GatewayService:
             return
 
         try:
-            url = "https://smartswitch.orkofleet.com/api/v1/charging/heartbeat"
+            from esp32OTA.config import config
+            base_url = getattr(config, 'ORKOFLEET_BASE_URL')
+            url = f"{base_url}/api/v1/charging/heartbeat"
             payload = {"devices": heartbeat_data}
             headers = {
                 "Content-Type": "application/json"
@@ -144,7 +146,9 @@ class GatewayService:
 
             try:
                 # 2. Fetch data from external API
-                api_url = f"https://smartswitch.orkofleet.com/api/v2/power-sockets/status/{client_id}"
+                from esp32OTA.config import config
+                base_url = getattr(config, 'ORKOFLEET_BASE_URL')
+                api_url = f"{base_url}/api/v2/power-sockets/status/{client_id}"
                 
                 response = requests.get(api_url, timeout=0.8) # Tight timeout for 1s loop
                 

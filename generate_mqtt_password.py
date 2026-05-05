@@ -25,10 +25,16 @@ def generate_hmac_password(device_id, access_token):
         access_token (str): Device access token (HMAC secret key)
     
     Returns:
-        str: HMAC-SHA256 hexdigest
+        tuple: (password, rounded_timestamp, creation_timestamp)
     """
-    # Use device_id as the message
-    message = device_id
+    # Capture the exact time of creation
+    creation_timestamp = int(time.time())
+    
+    # Round down current time to the nearest 5 minutes (300 seconds)
+    rounded_timestamp = str(creation_timestamp - (creation_timestamp % 300))
+    
+    # Use device_id AND the rounded timestamp in the HMAC message
+    message = f"{device_id}{rounded_timestamp}"
     
     signature = hmac.new(
         access_token.encode('utf-8'),
@@ -36,12 +42,12 @@ def generate_hmac_password(device_id, access_token):
         hashlib.sha256
     ).hexdigest()
     
-    # Generate a simple reversible "hash" (Base64 encoded) timestamp
-    timestamp = str(int(time.time()))
-    encoded_timestamp = base64.b64encode(timestamp.encode()).decode().rstrip('=')
+    # Generate a simple reversible "hash" (Base64 encoded) rounded timestamp
+    encoded_timestamp = base64.b64encode(rounded_timestamp.encode()).decode().rstrip('=')
     
-    # Append the reversible timestamp to the HMAC signature
-    return f"{signature}:{encoded_timestamp}"
+    # Append the reversible timestamp to the HMAC signature (No separator)
+    password = f"{signature}{encoded_timestamp}"
+    return password, rounded_timestamp, str(creation_timestamp)
 
 
 def main():
@@ -64,8 +70,8 @@ def main():
         print("Error: Both Device ID and Access Token are required.")
         return
     
-    # Generate HMAC password using id and token
-    password = generate_hmac_password(device_id, access_token)
+    # Generate HMAC password using id and token, capturing the timestamps
+    password, timestamp_used, creation_time = generate_hmac_password(device_id, access_token)
     
     # Output based on format
     if 'output_format' in locals() and output_format == 'json':
@@ -74,27 +80,26 @@ def main():
             'device_id': device_id,
             'username': device_id,
             'password': password,
+            'timestamp_used': timestamp_used,
+            'creation_time': creation_time,
             'algorithm': 'HMAC-SHA256'
         }, indent=2))
     elif 'output_format' in locals() and output_format == 'env':
         print(f"MQTT_USERNAME={device_id}")
         print(f"MQTT_PASSWORD={password}")
+        print(f"MQTT_TIMESTAMP={timestamp_used}")
+        print(f"MQTT_CREATED_AT={creation_time}")
     else:
         print(f"\n{'='*70}")
         print("MQTT Authentication Credentials")
         print(f"{'='*70}")
         print(f"Device ID:      {device_id}")
-        print(f"Access Token:   {access_token[:10]}...{access_token[-10:]}")
+        print(f"Access Token:   {access_token}")
+        print(f"Created At:     {creation_time}")
+        print(f"Timestamp Used: {timestamp_used}")
         print(f"{'='*70}")
         print(f"Username:       {device_id}")
         print(f"Password:       {password}")
-        print(f"{'='*70}")
-        print("\nMosquitto Publish Example:")
-        print(f'mosquitto_pub -h localhost -u "{device_id}" -P "{password}" \\')
-        print(f'  -t "devices/{device_id}/telemetry" -m "{{\'temp\':25.5}}"')
-        print("\nMosquitto Subscribe Example:")
-        print(f'mosquitto_sub -h localhost -u "{device_id}" -P "{password}" \\')
-        print(f'  -t "devices/{device_id}/#"')
         print(f"{'='*70}\n")
 
 

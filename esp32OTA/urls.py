@@ -22,6 +22,11 @@ def static_data_view():
     return jsonify(constants.STATIC_DATA)
 
 
+@app.route("/", methods=["GET"])
+def login_page():
+    return render_template("login.html")
+
+
 @app.route("/gateway", methods=["GET"])
 def gateway_dashboard():
     return render_template("index.html")
@@ -43,15 +48,12 @@ def gateway_data():
 
 
 @app.route("/api/gateway/logs", methods=["GET"])
-@decorators.is_authenticated
 def gateway_logs():
     logs = GatewayService.get_live_logs()
     return jsonify({"logs": logs})
 
 
 @app.route("/api/gateway/config", methods=["GET", "POST"])
-@decorators.is_authenticated
-@decorators.roles_allowed([constants.ROLE_ID_ADMIN])
 def gateway_config():
     if request.method == "GET":
         return ConfigController.get_config()

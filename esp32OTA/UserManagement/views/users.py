@@ -142,6 +142,18 @@ def restore_view(data):
     return redirect("/read")
 
 
+@users_bp.route("/admin/reset-password", methods=["POST"])
+@decorators.is_authenticated
+@decorators.roles_allowed([constants.ROLE_ID_ADMIN])
+@decorators.keys_validator(
+    [constants.ID, constants.USER__PASSWORD], # Admin must provide both
+    request_form_data=True
+)
+def admin_reset_password_view(data):
+    res = UserController.admin_reset_password_controller(data=data)
+    return res
+
+
 # @users_bp.route("/", methods=["GET"])
 # @decorators.logging
 # @decorators.keys_validator()
