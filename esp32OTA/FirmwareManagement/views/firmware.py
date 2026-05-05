@@ -73,7 +73,5 @@ def assign_to_device_type_view(data):
     request_form_data=True
 )
 def download_firmware_view(data):
-    # Forward all incoming request headers to the controller
-    data['headers'] = dict(request.headers)
     return FirmwareController.download_firmware(data=data)
 

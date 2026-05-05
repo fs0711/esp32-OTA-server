@@ -186,10 +186,10 @@ class FirmwareController(Controller):
     @classmethod
     def download_firmware(cls, data):
         try:
+            from flask import request, make_response
             firmware_id = data[constants.ID]
-            incoming_headers = data.get('headers', {})
-
-            # Retrieve firmware record for metadata
+            
+            # Retrieve firmware record
             firmware = Firmware.objects(
                 id=firmware_id,
                 status=constants.OBJECT_STATUS_ACTIVE
@@ -202,7 +202,6 @@ class FirmwareController(Controller):
                         constants.FIRMWARE.title(), constants.ID
                     ))
 
-            # Ensure file exists in local storage; cache from DB if missing
             firmware_dir = os.path.join(os.getcwd(), 'firmware_files')
             file_path = os.path.join(firmware_dir, str(firmware_id))
 
@@ -218,88 +217,47 @@ class FirmwareController(Controller):
                     f.write(firmware.file.read())
 
             file_size = os.path.getsize(file_path)
+            range_header = request.headers.get('Range', None)
 
-            # --- Range request (ESP32 chunked OTA) ---
-            range_header = incoming_headers.get('Range') or incoming_headers.get('range')
             if range_header:
-                # Handle various Range formats: bytes=0-4095, bytes=0-, etc.
                 match = re.match(r'bytes=(\d+)-(\d*)', range_header.strip())
-                if not match:
-                    response = Response("Invalid Range header", status=416)
-                    response.headers['Content-Range'] = f'bytes */{file_size}'
-                    return response
+                if match:
+                    range_start = int(match.group(1))
+                    range_end = match.group(2)
+                    range_end = int(range_end) if range_end else file_size - 1
+                    range_end = min(range_end, file_size - 1)
 
-                range_start = int(match.group(1))
-                range_end_str = match.group(2)
-                
-                if range_end_str:
-                    range_end = int(range_end_str)
-                else:
-                    range_end = file_size - 1
-
-                # Clamp end to last valid byte
-                range_end = min(range_end, file_size - 1)
-
-                if range_start >= file_size or range_start > range_end:
-                    response = Response("Range Not Satisfiable", status=416)
-                    response.headers['Content-Range'] = f'bytes */{file_size}'
-                    return response
-
-                content_length = range_end - range_start + 1
-
-                def generate_range():
+                    content_length = range_end - range_start + 1
+                    
                     with open(file_path, 'rb') as f:
                         f.seek(range_start)
-                        remaining = content_length
-                        while remaining > 0:
-                            chunk = f.read(min(4096, remaining))
-                            if not chunk:
-                                break
-                            remaining -= len(chunk)
-                            yield chunk
+                        chunk = f.read(content_length)
 
-                response = Response(
-                    stream_with_context(generate_range()),
-                    status=206
-                )
-                # Set headers with exact casing for ESP32 compatibility
-                response.headers['Content-Range'] = f'bytes {range_start}-{range_end}/{file_size}'
-                response.headers['Content-Length'] = str(content_length)
-                response.headers['Content-Type'] = 'application/octet-stream'
-                response.headers['Accept-Ranges'] = 'bytes'
-                # Optional: response.headers['x-MD5'] = firmware.checksum
-                return response
+                    response = make_response(chunk)
+                    response.status_code = 206
+                    response.headers.clear() # Clear any default headers
+                    response.headers['Content-Type'] = 'application/octet-stream'
+                    response.headers['Content-Range'] = f'bytes {range_start}-{range_end}/{file_size}'
+                    response.headers['Content-Length'] = str(content_length)
+                    response.headers['Accept-Ranges'] = 'bytes'
+                    response.headers['Connection'] = 'close'
+                    return response
 
-            # --- Full-file fallback (no Range header) ---
-            raw_chunk_size = (
-                data.get('chunk_size')
-                or incoming_headers.get('X-Chunk-Size')
-                or incoming_headers.get('x-chunk-size')
-                or 4096
-            )
-            try:
-                chunk_size = int(raw_chunk_size)
-            except (ValueError, TypeError):
-                chunk_size = 4096
-            chunk_size = max(256, min(chunk_size, 4096))
-
-            def generate_full():
-                with open(file_path, 'rb') as f:
-                    while True:
-                        chunk = f.read(chunk_size)
-                        if not chunk:
-                            break
-                        yield chunk
-
-            response = Response(
-                stream_with_context(generate_full()),
-                mimetype='application/octet-stream'
-            )
+            # Full file response
+            with open(file_path, 'rb') as f:
+                chunk = f.read()
+            
+            response = make_response(chunk, 200)
             response.headers['Content-Type'] = 'application/octet-stream'
             response.headers['Content-Length'] = str(file_size)
             response.headers['Accept-Ranges'] = 'bytes'
-            response.headers['x-MD5'] = firmware.checksum
             return response
+
+        except Exception as e:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_EXCEPTION,
+                response_message=f"Error downloading firmware: {str(e)}"
+            )
 
         except Exception as e:
             return response_utils.get_response_object(
