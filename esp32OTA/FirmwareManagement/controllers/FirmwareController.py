@@ -222,14 +222,20 @@ class FirmwareController(Controller):
             # --- Range request (ESP32 chunked OTA) ---
             range_header = incoming_headers.get('Range') or incoming_headers.get('range')
             if range_header:
-                match = re.match(r'bytes=(\d+)-(\d+)', range_header.strip())
+                # Handle various Range formats: bytes=0-4095, bytes=0-, etc.
+                match = re.match(r'bytes=(\d+)-(\d*)', range_header.strip())
                 if not match:
                     response = Response("Invalid Range header", status=416)
                     response.headers['Content-Range'] = f'bytes */{file_size}'
                     return response
 
                 range_start = int(match.group(1))
-                range_end = int(match.group(2))
+                range_end_str = match.group(2)
+                
+                if range_end_str:
+                    range_end = int(range_end_str)
+                else:
+                    range_end = file_size - 1
 
                 # Clamp end to last valid byte
                 range_end = min(range_end, file_size - 1)

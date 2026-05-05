@@ -70,7 +70,7 @@ def assign_to_device_type_view(data):
 @decorators.keys_validator(
     [constants.ID],
     ["chunk_size"],
-    request_form_data=False
+    request_form_data=True
 )
 def download_firmware_view(data):
     # Forward all incoming request headers to the controller
