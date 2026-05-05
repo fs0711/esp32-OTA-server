@@ -12,15 +12,15 @@ def register_scheduled_tasks(scheduler):
         scheduler: APScheduler instance
     """
 
-    @scheduler.task('interval', id='update_offline_devices', minutes=1, misfire_grace_time=60)
-    def update_offline_devices():
-        print(f"[{datetime.now()}] Updating offline devices...")
-        DeviceController.get_last_online()
+    # @scheduler.task('interval', id='update_offline_devices', minutes=1, misfire_grace_time=60)
+    # def update_offline_devices():
+    #     print(f"[{datetime.now()}] Updating offline devices...")
+    #     DeviceController.get_last_online()
 
-    @scheduler.task('interval', id='Email Notifications', minutes=1, misfire_grace_time=60)
-    def Send_notifications():
-        print(f"[{datetime.now()}] Sending notification emails...")
-        NotificationController.send_notifications()
+    # @scheduler.task('interval', id='Email Notifications', minutes=1, misfire_grace_time=60)
+    # def Send_notifications():
+    #     print(f"[{datetime.now()}] Sending notification emails...")
+    #     NotificationController.send_notifications()
         
     @scheduler.task('interval', id='gateway_device_polling', seconds=60, misfire_grace_time=120, max_instances=5)
     def gateway_poll_task():
