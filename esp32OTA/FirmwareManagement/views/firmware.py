@@ -66,7 +66,7 @@ def assign_to_device_type_view(data):
 
 
 @firmware_bp.route("/download", methods=["GET"])
-@decorators.is_authenticated
+#@decorators.is_authenticated
 @decorators.keys_validator(
     [constants.ID],
     ["chunk_size"],
