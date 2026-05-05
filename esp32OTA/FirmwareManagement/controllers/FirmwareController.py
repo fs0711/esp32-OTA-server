@@ -260,14 +260,14 @@ class FirmwareController(Controller):
 
                 response = Response(
                     stream_with_context(generate_range()),
-                    status=206,
-                    mimetype='application/octet-stream'
+                    status=206
                 )
+                # Set headers with exact casing for ESP32 compatibility
                 response.headers['Content-Range'] = f'bytes {range_start}-{range_end}/{file_size}'
                 response.headers['Content-Length'] = str(content_length)
                 response.headers['Content-Type'] = 'application/octet-stream'
                 response.headers['Accept-Ranges'] = 'bytes'
-                response.headers['x-MD5'] = firmware.checksum
+                # Optional: response.headers['x-MD5'] = firmware.checksum
                 return response
 
             # --- Full-file fallback (no Range header) ---
