@@ -43,8 +43,8 @@ class MQTTClientService:
             logger.info("[MQTT] Connected successfully")
             # Subscribe to stats and device topics
             client.subscribe("$SYS/broker/#")
-            client.subscribe("devices/+/status/#")
-            client.subscribe("devices/+/usage/#")
+            client.subscribe("ZV/DEVICES/+/status/#")
+            client.subscribe("ZV/DEVICES/+/usage/#")
         else:
             logger.error(f"[MQTT] Connection failed with code {reason_code}")
 
@@ -56,12 +56,12 @@ class MQTTClientService:
             if topic.startswith("$SYS/broker/"):
                 stat_key = topic.replace("$SYS/broker/", "")
                 self.broker_stats[stat_key] = payload_str
-            elif topic.startswith("devices/"):
+            elif topic.startswith("ZV/DEVICES/"):
                 # Handle incoming status from devices
-                # Expected topic format: devices/DV-2/status
+                # Expected topic format: ZV/DEVICES/DV-2/status
                 topic_parts = topic.split('/')
-                if len(topic_parts) >= 2 and "status" in topic:
-                    device_id = topic_parts[1]
+                if len(topic_parts) >= 3 and "status" in topic:
+                    device_id = topic_parts[2]
                     try:
                         data = json.loads(payload_str)
                         # Identify if this is a new message by timestamp (t) BEFORE logging
@@ -77,8 +77,8 @@ class MQTTClientService:
                         self.handle_device_status(device_id, data)
                     except json.JSONDecodeError:
                         logger.error(f"[MQTT] Failed to decode status payload for {device_id}")
-                elif len(topic_parts) >= 2 and "usage" in topic:
-                    device_id = topic_parts[1]
+                elif len(topic_parts) >= 3 and "usage" in topic:
+                    device_id = topic_parts[2]
                     try:
                         data = json.loads(payload_str)
                         new_timestamp = data.get("t") or data.get("timestamp")
@@ -176,28 +176,27 @@ class MQTTClientService:
             headers = {
                 "Content-Type": "application/json"
             }
+            
+            # Always log to terminal
             logger.info(f"[MQTT] -> API Payload: {json.dumps(payload)}")
             
-            # Save outgoing log
-            from esp32OTA.GatewayLogging.controllers.GatewayLoggingController import GatewayLoggingController
-            from esp32OTA import app
-            with app.app_context():
-                GatewayLoggingController.log_gateway_activity(json.dumps(payload), "sent")
+            # Save to database log ONLY if 'e' has values
+            has_errors = any(item.get("e") for item in mapped_s) or bool(root_errors)
+            if has_errors:
+                from esp32OTA.GatewayLogging.controllers.GatewayLoggingController import GatewayLoggingController
+                from esp32OTA import app
+                with app.app_context():
+                    GatewayLoggingController.log_gateway_activity(json.dumps(payload), "sent")
 
             response = requests.post(api_url, json=payload, headers=headers, timeout=5)
             logger.info(f"[MQTT] Forwarded {device_id} status to API. Status: {response.status_code}")
             
+            # Restore terminal logging of response (but not database)
             try:
                 resp_data = response.json()
                 logger.info(f"[MQTT] API Response: {json.dumps(resp_data)}")
-                # Save incoming log
-                with app.app_context():
-                    GatewayLoggingController.log_gateway_activity(json.dumps(resp_data), "received")
             except:
                 logger.info(f"[MQTT] API Response: {response.text}")
-                # Save incoming log (raw text)
-                with app.app_context():
-                    GatewayLoggingController.log_gateway_activity(response.text, "received")
             
         except Exception as e:
             logger.error(f"[MQTT] Error handling device status for {device_id}: {str(e)}")
@@ -230,28 +229,18 @@ class MQTTClientService:
             api_url = f"{base_url}/api/v2/charge-sessions/add-usage-data"
             headers = {"Content-Type": "application/json"}
             
+            # Always log outgoing to terminal
             logger.info(f"[MQTT] -> Usage API Payload: {json.dumps(payload)}")
             
-            # Save outgoing log
-            from esp32OTA.GatewayLogging.controllers.GatewayLoggingController import GatewayLoggingController
-            from esp32OTA import app
-            with app.app_context():
-                GatewayLoggingController.log_gateway_activity(json.dumps(payload), "sent")
-
             response = requests.post(api_url, json=payload, headers=headers, timeout=5)
             logger.info(f"[MQTT] Forwarded {device_id} usage to API. Status: {response.status_code}")
             
+            # Restore terminal logging of response (but not database)
             try:
                 resp_data = response.json()
                 logger.info(f"[MQTT] Usage API Response: {json.dumps(resp_data)}")
-                # Save incoming log
-                with app.app_context():
-                    GatewayLoggingController.log_gateway_activity(json.dumps(resp_data), "received")
             except:
                 logger.info(f"[MQTT] Usage API Response: {response.text}")
-                # Save incoming log (raw text)
-                with app.app_context():
-                    GatewayLoggingController.log_gateway_activity(response.text, "received")
 
         except Exception as e:
             logger.error(f"[MQTT] Error handling device usage for {device_id}: {str(e)}")
@@ -270,5 +259,34 @@ class MQTTClientService:
     def stop(self):
         self.client.loop_stop()
         self.client.disconnect()
+
+    def publish_firmware_update(self, device_id, firmware_data):
+        """
+        Publishes firmware update information to the device's firmware topic.
+        """
+        topic = f"ZV/DEVICES/{device_id}/firmware"
+        try:
+            payload = json.dumps(firmware_data)
+            self.client.publish(topic, payload, qos=1)
+            logger.info(f"[MQTT] Published firmware update to {topic}: {payload}")
+        except Exception as e:
+            logger.error(f"[MQTT] Failed to publish firmware update to {topic}: {str(e)}")
+
+    def publish(self, topic, message, qos=1):
+        """
+        Publishes a message to a specific topic.
+        """
+        try:
+            if isinstance(message, (dict, list)):
+                payload = json.dumps(message)
+            else:
+                payload = str(message)
+
+            self.client.publish(topic, payload, qos=qos)
+            logger.info(f"[MQTT] Published to {topic}: {payload}")
+            return True
+        except Exception as e:
+            logger.error(f"[MQTT] Failed to publish to {topic}: {str(e)}")
+            return False
 
 mqtt_service = MQTTClientService()

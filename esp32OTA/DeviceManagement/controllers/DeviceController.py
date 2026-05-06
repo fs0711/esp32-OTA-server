@@ -11,6 +11,7 @@ from esp32OTA.DeviceManagement.models.DeviceType import DeviceType
 from esp32OTA.UserManagement.controllers.TokenController import TokenController
 from esp32OTA.UserManagement.controllers.UserController import UserController
 from esp32OTA.generic.services.utils import constants, response_codes, response_utils, common_utils, __global__
+from esp32OTA.Services.mqtt_client import mqtt_service
 from esp32OTA import config
 from datetime import datetime
 
@@ -146,6 +147,11 @@ class DeviceController(Controller):
                 response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
                     constants.DEVICE.title(), constants.ID
                 ))
+        
+        # Post to MQTT that configuration is updated
+        topic = f"ZV/DEVICES/{obj.device_id}/config"
+        mqtt_service.publish(topic, {"s": "update_required", "t": datetime.now().isoformat()})
+
         return response_utils.get_response_object(
             response_code=response_codes.CODE_SUCCESS,
             response_message=response_codes.MESSAGE_SUCCESS,

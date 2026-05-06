@@ -1,6 +1,7 @@
 # Python imports
 import re
 import os
+import json
 from math import nan, isnan
 # Framework imports
 from flask import Response, stream_with_context
@@ -12,6 +13,7 @@ from esp32OTA.FirmwareManagement.models.Firmware import Firmware
 from esp32OTA.DeviceManagement.models.Device import Device
 from esp32OTA.DeviceManagement.models.DeviceType import DeviceType
 from esp32OTA.generic.services.utils import constants, response_codes, response_utils, common_utils, pipeline
+from esp32OTA.Services.mqtt_client import mqtt_service
 
 
 class FirmwareController(Controller):
@@ -121,7 +123,7 @@ class FirmwareController(Controller):
                 response_data=["firmware_id and device_type_id are required"]
             )
         
-        # Get firmware object
+        # Get firmware objectt
         firmware = cls.db_read_single_record(
             read_filter={constants.ID: firmware_id},
             deleted_records=False
@@ -172,6 +174,20 @@ class FirmwareController(Controller):
                 set__fw_file=firmware
             )
             updated_count += 1
+
+            # Prepare MQTT payload for the device with shortened keys
+            import time
+            mqtt_payload = {
+                "t": int(time.time()),
+                "f_f": str(firmware.file_name) if firmware.file_name else "",
+                "f_v": str(device.fw_version) if device.fw_version else "",
+                "h_v": str(device.hw_version) if device.hw_version else "",
+                "n_v": str(firmware.version) if firmware.version else "",
+                "u_p": str(firmware.update_path) if firmware.update_path else ""
+            }
+            
+            # Publish to MQTT
+            mqtt_service.publish_firmware_update(device.device_id, mqtt_payload)
         
         return response_utils.get_response_object(
             response_code=response_codes.CODE_SUCCESS,

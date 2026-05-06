@@ -35,11 +35,24 @@ class GatewayService:
                     c_s_id = dev.connection.get('client_id') if isinstance(dev.connection, dict) else d_id
                 
                 info = cls._last_data.get(d_id, {})
+                online_status = info.get("online", True)
+                last_seen_iso = info.get("last_seen", datetime.now().isoformat())
+
                 heartbeat_data.append({
                     "id": c_s_id,
-                    "online": info.get("online", True), # Default to true if in DB
-                    "last_seen": info.get("last_seen", datetime.now().isoformat())
+                    "online": online_status, # Default to true if in DB
+                    "last_seen": last_seen_iso
                 })
+
+                # Update Device connection status in DB
+                try:
+                    status_str = "online" if online_status else "offline"
+                    # User requested ISO for server, but DB display was MM-DD-YYYY HH:MM:SS
+                    formatted_last_seen = datetime.now().strftime("%m-%d-%Y %H:%M:%S")
+                    
+                    dev.update(set__connection__status=status_str, set__connection__last_update=formatted_last_seen)
+                except Exception as update_err:
+                    logger.error(f"[HB] Error updating device {d_id} in DB: {update_err}")
         except Exception as db_err:
             logger.error(f"[HB] DB Error: {db_err}")
             # Fallback to dictionary
@@ -164,14 +177,14 @@ class GatewayService:
                     filtered_s = []
                     for item in raw_s:
                         # Shorten variable names as requested:
-                        # status -> st, session_id -> se_id, credit -> c
+                        # status -> st, session_id -> sid, credit -> cr
                         filtered_item = {}
                         if 'status' in item:
                             filtered_item['st'] = item['status']
                         if 'session_id' in item:
-                            filtered_item['se_id'] = item['session_id']
+                            filtered_item['sid'] = item['session_id']
                         if 'credit' in item:
-                            filtered_item['c'] = item['credit']
+                            filtered_item['cr'] = item['credit']
                         
                         # Preserve other keys if any, except box_open_request
                         for k, v in item.items():
