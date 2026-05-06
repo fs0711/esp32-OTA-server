@@ -179,7 +179,7 @@ class FirmwareController(Controller):
             import time
             mqtt_payload = {
                 "t": int(time.time()),
-                "f_f": str(firmware.file_name) if firmware.file_name else "",
+                "f_f": str(firmware.id),
                 "f_v": str(device.fw_version) if device.fw_version else "",
                 "h_v": str(device.hw_version) if device.hw_version else "",
                 "n_v": str(firmware.version) if firmware.version else "",

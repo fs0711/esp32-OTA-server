@@ -40,17 +40,18 @@ The server sends commands and update notifications to devices on these topics:
 
 ### A. Configuration Update Notification
 - **Topic**: `ZV/DEVICES/{device_id}/config`
-- **Payload**: `{"s": "update_required", "t": "ISO_TIMESTAMP"}`
+- **Payload**: `{"s": "update_required", "t": 1778095523}`
 - **Logic**: 
   - Triggered automatically when a device's configuration is modified via the `DeviceController`.
   - Notifies the device that it needs to fetch new settings.
+  - Timestamp (`t`) is in Epoch format.
 
 ### B. Firmware Update Command
 - **Topic**: `ZV/DEVICES/{device_id}/firmware`
-- **Payload**: `{"t": 1778095523, "f_f": "v0.9.1.bin", "f_v": "1", "h_v": "1", "n_v": "2", "u_p": "immediate"}`
+- **Payload**: `{"t": 1778095523, "f_f": "FIRMWARE_OBJECT_ID", "f_v": "1", "h_v": "1", "n_v": "2", "u_p": "immediate"}`
 - **Logic**:
   - Sent by the `FirmwareController` when a new OTA update is initiated.
-  - Instructs the device on which file to download and whether to apply it immediately.
+  - Instructs the device on which file to download (using its ID) and whether to apply it immediately.
 
 ---
 
