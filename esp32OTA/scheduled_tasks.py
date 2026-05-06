@@ -22,7 +22,7 @@ def register_scheduled_tasks(scheduler):
     #     print(f"[{datetime.now()}] Sending notification emails...")
     #     NotificationController.send_notifications()
         
-    @scheduler.task('interval', id='gateway_device_polling', seconds=60, misfire_grace_time=120, max_instances=5)
+    @scheduler.task('interval', id='gateway_device_polling', seconds=1, misfire_grace_time=120, max_instances=5)
     def gateway_poll_task():
         GatewayService.poll_devices()
 
