@@ -1,0 +1,19 @@
+🧠 How the backend verifies
+Your backend will:
+
+Receive username (device_id) and password (HMAC)
+
+Look up the device’s secret
+
+Recompute HMAC for:
+
+current 5‑minute bucket
+
+previous bucket
+
+next bucket (optional)
+
+If any match → authentication success
+
+This handles clock drift automatically.
+
