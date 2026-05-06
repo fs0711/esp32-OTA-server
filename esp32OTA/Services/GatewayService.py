@@ -201,7 +201,7 @@ class GatewayService:
                         status_changed = False
                     
                     if status_changed:
-                        topic = f"devices/{device.device_id}/command"
+                        topic = f"ZV/DEVICES/{device.device_id}/command"
                         
                         # Optimized payload as per user request: timestamp -> t
                         payload = json.dumps({
