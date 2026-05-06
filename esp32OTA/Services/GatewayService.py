@@ -210,7 +210,7 @@ class GatewayService:
                         })
                         
                         # Using retain=True so the latest command is always available to the device
-                        client.publish(topic, payload, retain=True)
+                        client.publish(topic, payload, qos=1, retain=True)
                         cls._last_status[str(device.device_id)] = current_status_summary
                         print(f"[{current_time.strftime('%H:%M:%S')}] [GW] -> {device.device_id} | Topic: {topic}")
                         print(f"[{current_time.strftime('%H:%M:%S')}] [GW] Payload: {payload}")

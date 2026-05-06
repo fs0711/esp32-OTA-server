@@ -42,9 +42,9 @@ class MQTTClientService:
         if reason_code == 0:
             logger.info("[MQTT] Connected successfully")
             # Subscribe to stats and device topics
-            client.subscribe("$SYS/broker/#")
-            client.subscribe("ZV/DEVICES/+/status/#")
-            client.subscribe("ZV/DEVICES/+/usage/#")
+            client.subscribe("$SYS/broker/#", qos=1)
+            client.subscribe("ZV/DEVICES/+/status/#", qos=1)
+            client.subscribe("ZV/DEVICES/+/usage/#", qos=1)
         else:
             logger.error(f"[MQTT] Connection failed with code {reason_code}")
 
