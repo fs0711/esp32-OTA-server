@@ -42,11 +42,8 @@ def generate_hmac_password(device_id, access_token):
         hashlib.sha256
     ).hexdigest()
     
-    # Generate a simple reversible "hash" (Base64 encoded) rounded timestamp
-    encoded_timestamp = base64.b64encode(rounded_timestamp.encode()).decode().rstrip('=')
-    
-    # Append the reversible timestamp to the HMAC signature (No separator)
-    password = f"{signature}{encoded_timestamp}"
+    # Return the signature directly as the password
+    password = signature
     return password, rounded_timestamp, str(creation_timestamp)
 
 

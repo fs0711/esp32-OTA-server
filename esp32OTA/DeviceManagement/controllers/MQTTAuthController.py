@@ -52,49 +52,20 @@ class MQTTAuthController(Controller):
         # Get the device's access token (this will be the HMAC secret)
         secret_key = device_obj[constants.DEVICE__ACCESS_TOKEN]
         
-        # Split password into signature and encoded timestamp
-        if ":" not in password:
-            return response_utils.get_response_object(
-                response_code=response_codes.CODE_AUTHENTICATION_FAILED,
-                response_message="Invalid password format",
-                response_data=[]
-            )
-        
-        provided_signature, encoded_timestamp = password.split(":", 1)
+        # Get current server time and round it (to match generator logic)
+        current_time = common_utils.get_time() // 1000  # Convert ms to seconds
+        rounded_timestamp = str(current_time - (current_time % 300))
 
-        # Decode the timestamp and check for expiration (5 minutes = 300 seconds)
-        try:
-            # Add padding back if necessary for base64 decoding
-            missing_padding = len(encoded_timestamp) % 4
-            if missing_padding:
-                encoded_timestamp += '=' * (4 - missing_padding)
-            
-            client_time = int(base64.b64decode(encoded_timestamp).decode())
-            server_time = common_utils.get_time() // 1000  # Convert ms from common_utils to seconds
-            
-            if abs(server_time - client_time) > config.REQUEST_EXPIRY_TIME:
-                return response_utils.get_response_object(
-                    response_code=response_codes.CODE_AUTHENTICATION_FAILED,
-                    response_message="Request timed out",
-                    response_data=[]
-                )
-        except Exception:
-            return response_utils.get_response_object(
-                response_code=response_codes.CODE_AUTHENTICATION_FAILED,
-                response_message="Invalid timestamp format",
-                response_data=[]
-            )
-
-        # Compute expected HMAC signature
-        # The message being signed is the username (device_id)
+        # Compute expected HMAC signature using device_id and rounded timestamp
+        message = f"{username}{rounded_timestamp}"
         expected_signature = hmac.new(
             secret_key.encode('utf-8'),
-            username.encode('utf-8'),
+            message.encode('utf-8'),
             hashlib.sha256
         ).hexdigest()
         
-        # Compare the provided signature with the expected HMAC signature
-        if hmac.compare_digest(provided_signature, expected_signature):
+        # Compare the provided password (which is now just the signature) with expected signature
+        if hmac.compare_digest(password, expected_signature):
             return response_utils.get_response_object(
                 response_code=response_codes.CODE_SUCCESS,
                 response_message="Authentication successful",

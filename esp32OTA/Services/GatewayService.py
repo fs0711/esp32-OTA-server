@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class GatewayService:
     _last_data = {}  # Store last received data for dashboard
+    _last_status = {} # Store last status for check-then-publish logic
     _max_logs = 100
     _last_heartbeat_time = 0
 
@@ -158,25 +159,51 @@ class GatewayService:
                     # 3. Process data for command payload
                     current_time = datetime.now()
                     
-                    # Filter 's' array to remove 'box_open_request'
+                    # Filter 's' array to remove 'box_open_request' and shorten keys
                     raw_s = api_data.get('s', [])
                     filtered_s = []
                     for item in raw_s:
-                        filtered_item = {k: v for k, v in item.items() if k != 'box_open_request'}
+                        # Shorten variable names as requested:
+                        # status -> st, session_id -> se_id, credit -> c
+                        filtered_item = {}
+                        if 'status' in item:
+                            filtered_item['st'] = item['status']
+                        if 'session_id' in item:
+                            filtered_item['se_id'] = item['session_id']
+                        if 'credit' in item:
+                            filtered_item['c'] = item['credit']
+                        
+                        # Preserve other keys if any, except box_open_request
+                        for k, v in item.items():
+                            if k not in ['status', 'session_id', 'credit', 'box_open_request']:
+                                filtered_item[k] = v
+                                
                         filtered_s.append(filtered_item)
 
-                    topic = f"devices/{device.device_id}/command"
+                    # Check if status has changed before publishing
+                    # We use device.device_id as the key to track state
+                    status_changed = True
+                    current_status_summary = json.dumps(filtered_s, sort_keys=True)
+                    if cls._last_status.get(str(device.device_id)) == current_status_summary:
+                        status_changed = False
                     
-                    # Optimized payload as per user request
-                    payload = json.dumps({
-                        "timestamp": int(current_time.timestamp()), # Unix Epoch
-                        "s": filtered_s
-                    })
-                    
-                    # Using retain=True so the latest command is always available to the device
-                    client.publish(topic, payload, retain=True)
-                    print(f"[{current_time.strftime('%H:%M:%S')}] [GW] -> {device.device_id} | Topic: {topic}")
-                    print(f"[{current_time.strftime('%H:%M:%S')}] [GW] Payload: {payload}")
+                    if status_changed:
+                        topic = f"devices/{device.device_id}/command"
+                        
+                        # Optimized payload as per user request: timestamp -> t
+                        payload = json.dumps({
+                            "t": int(current_time.timestamp()), # Unix Epoch
+                            "s": filtered_s
+                        })
+                        
+                        # Using retain=True so the latest command is always available to the device
+                        client.publish(topic, payload, retain=True)
+                        cls._last_status[str(device.device_id)] = current_status_summary
+                        print(f"[{current_time.strftime('%H:%M:%S')}] [GW] -> {device.device_id} | Topic: {topic}")
+                        print(f"[{current_time.strftime('%H:%M:%S')}] [GW] Payload: {payload}")
+                    else:
+                        # Skip publishing if nothing changed
+                        pass
                     
                     # Update local state for dashboard
                     cls._last_data[device.device_id] = {

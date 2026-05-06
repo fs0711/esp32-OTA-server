@@ -64,8 +64,8 @@ class MQTTClientService:
                     device_id = topic_parts[1]
                     try:
                         data = json.loads(payload_str)
-                        # Identify if this is a new message by timestamp BEFORE logging
-                        new_timestamp = data.get("timestamp")
+                        # Identify if this is a new message by timestamp (t) BEFORE logging
+                        new_timestamp = data.get("t") or data.get("timestamp")
                         if new_timestamp is not None:
                             last_ts = self.last_timestamps.get(device_id)
                             if last_ts == new_timestamp:
@@ -81,7 +81,7 @@ class MQTTClientService:
                     device_id = topic_parts[1]
                     try:
                         data = json.loads(payload_str)
-                        new_timestamp = data.get("timestamp")
+                        new_timestamp = data.get("t") or data.get("timestamp")
                         if new_timestamp is not None:
                             if self.last_usage_timestamps.get(device_id) == new_timestamp:
                                 return
@@ -99,8 +99,8 @@ class MQTTClientService:
         checks for duplicate timestamps, and forwards to the external status API.
         """
         try:
-            # 0. Deduplicate by timestamp
-            new_timestamp = raw_data.get("timestamp")
+            # 0. Deduplicate by timestamp (t)
+            new_timestamp = raw_data.get("t") or raw_data.get("timestamp")
             if new_timestamp is not None:
                 # Update local cache (Already checked uniqueness in on_message)
                 self.last_timestamps[device_id] = new_timestamp
@@ -141,21 +141,33 @@ class MQTTClientService:
                 }
 
             # 2. Map incoming status format to requested API format
-            # Device sends: {"timestamp": 123, "s": [{"id": 2, "st": 0, "sg": "w", "e": ["E2"]}]}
+            # Device sends: {"t": 123, "s": [{"id": 2, "st": 0, "sg": "w", "e": ["E2"]}], "e": []}
             incoming_s = raw_data.get("s", [])
             mapped_s = []
             
             for item in incoming_s:
+                # Signal type mapping: w -> wifi, g -> gsm
+                signal_raw = item.get("sg")
+                signal_mapped = signal_raw
+                if signal_raw == "w":
+                    signal_mapped = "wifi"
+                elif signal_raw == "g":
+                    signal_mapped = "gsm"
+
                 mapped_s.append({
                     "id": item.get("id"),
                     "status": item.get("st"), # st -> status
-                    "signal_type": "wifi" if item.get("sg") == "w" else item.get("sg"), # sg -> signal_type
+                    "signal_type": signal_mapped,
                     "e": item.get("e", [])
                 })
+            
+            # Root error field: send to OrkoFleet only if it has values
+            root_errors = raw_data.get("e", [])
+            
             payload = {
                 "c_s_id": int(client_id) if str(client_id).isdigit() else client_id,
                 "s": mapped_s,
-                "e": []
+                "e": root_errors
             }
 
             # 3. Post to API
@@ -195,7 +207,7 @@ class MQTTClientService:
         Processes incoming device usage, maps fields, and posts to the usage API.
         """
         try:
-            new_timestamp = raw_data.get("timestamp")
+            new_timestamp = raw_data.get("t") or raw_data.get("timestamp")
             if new_timestamp:
                 self.last_usage_timestamps[device_id] = new_timestamp
 
