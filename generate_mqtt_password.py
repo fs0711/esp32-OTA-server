@@ -36,14 +36,14 @@ def generate_hmac_password(device_id, access_token):
     # Use device_id AND the rounded timestamp in the HMAC message
     message = f"{device_id}{rounded_timestamp}"
     
-    signature = hmac.new(
+    raw_signature = hmac.new(
         access_token.encode('utf-8'),
         message.encode('utf-8'),
         hashlib.sha256
-    ).hexdigest()
+    ).digest()
     
-    # Return the signature directly as the password
-    password = signature
+    # Base64url-encode the raw digest for a shorter, URL-safe password (~43 chars)
+    password = base64.urlsafe_b64encode(raw_signature).rstrip(b'=').decode('utf-8')
     return password, rounded_timestamp, str(creation_timestamp)
 
 
