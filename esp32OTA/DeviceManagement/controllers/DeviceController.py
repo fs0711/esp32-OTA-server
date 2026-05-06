@@ -149,8 +149,9 @@ class DeviceController(Controller):
                 ))
         
         # Post to MQTT that configuration is updated
+        import time
         topic = f"ZV/DEVICES/{obj.device_id}/config"
-        mqtt_service.publish(topic, {"s": "update_required", "t": datetime.now().isoformat()})
+        mqtt_service.publish(topic, {"s": "update_required", "t": int(time.time())})
 
         return response_utils.get_response_object(
             response_code=response_codes.CODE_SUCCESS,
