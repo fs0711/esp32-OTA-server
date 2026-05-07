@@ -149,9 +149,8 @@ class DeviceController(Controller):
                 ))
         
         # Post to MQTT that configuration is updated
-        import time
         topic = f"ZV/DEVICES/{obj.device_id}/config"
-        mqtt_service.publish(topic, {"s": "update_required", "t": int(time.time())})
+        mqtt_service.publish(topic, {"s": "update_required", "t": common_utils.get_time_iso()})
 
         return response_utils.get_response_object(
             response_code=response_codes.CODE_SUCCESS,
@@ -234,6 +233,77 @@ class DeviceController(Controller):
         
     @classmethod
     def get_last_online(cls):
+        from esp32OTA.NotificationManagement.controller.NotificationsController import NotificationController
+        devices = cls.db_read_records(
+            read_filter={constants.STATUS: constants.OBJECT_STATUS_ACTIVE})
+        for device in devices:
+            online = common_utils.get_last_update(device[constants.DEVICE__ACCESS_TOKEN])
+            if device[constants.DEVICE__CONNECTION]["status"] != online['status']:
+                # Create notification for device status change
+                notification_data = {
+                    constants.NOTIFICATION__TITLE: f"Device {device[constants.DEVICE__NAME]} is now {online['status']}",
+                    constants.NOTIFICATION__MESSAGE: f"The device '{device[constants.DEVICE__NAME]}' has changed its status to {online['status']} as of {online['last_update']}.",
+                    constants.NOTIFICATION__TYPE: "device_status_change",
+                    constants.NOTIFICATION__RELATED_DEVICE: str(device.id),
+                }
+                NotificationController.create_controller(notification_data)
+
+    @classmethod
+    def force_update_controller(cls, data):
+        device_id_val = data.get(constants.ID)
+        changes_required = data.get(constants.DEVICE__CHANGES_REQUIRED)
+
+        # 1. Update update_config to true if changes_required is true
+        if changes_required:
+            is_valid, error_messages, obj = cls.db_update_single_record(
+                read_filter={constants.ID: device_id_val},
+                update_filter={constants.DEVICE__UPDATE_CONFIG: True},
+                update_mode=constants.UPDATE_MODE__PARTIAL
+            )
+
+            if not is_valid:
+                return response_utils.get_response_object(
+                    response_code=response_codes.CODE_VALIDATION_FAILED,
+                    response_message=response_codes.MESSAGE_VALIDATION_FAILED,
+                    response_data=error_messages
+                )
+            if not obj:
+                return response_utils.get_response_object(
+                    response_code=response_codes.CODE_RECORD_NOT_FOUND,
+                    response_message=response_codes.MESSAGE_NOT_FOUND_DATA.format(
+                        constants.DEVICE.title(), constants.ID
+                    ))
+
+            # 2. Post a payload on mqtt against device
+            topic = f"ZV/DEVICES/{obj.device_id}/config_update"
+            payload = {"config_update": {"t": common_utils.get_time_iso(), "force": True}}
+            
+            try:
+                mqtt_service.publish(topic, payload)
+                # 3. If successful, change update_config back to false
+                obj.update(set__update_config=False)
+                obj.save()
+            except Exception as e:
+                return response_utils.get_response_object(
+                    response_code=response_codes.CODE_OPERATION_FAILED,
+                    response_message=f"MQTT Publish failed: {str(e)}",
+                    response_data=[]
+                )
+
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_SUCCESS,
+                response_message="Force update triggered successfully",
+                response_data=obj.display()
+            )
+        
+        return response_utils.get_response_object(
+            response_code=response_codes.CODE_VALIDATION_FAILED,
+            response_message="changes_required must be true to trigger force update",
+            response_data=[]
+        )
+
+    @classmethod
+    def update_device_connection_status(cls):
         from esp32OTA.NotificationManagement.controller.NotificationsController import NotificationController
         devices = cls.db_read_records(
             read_filter={constants.STATUS: constants.OBJECT_STATUS_ACTIVE})

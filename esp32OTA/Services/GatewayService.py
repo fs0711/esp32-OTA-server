@@ -36,7 +36,8 @@ class GatewayService:
                 
                 info = cls._last_data.get(d_id, {})
                 online_status = info.get("online", True)
-                last_seen_iso = info.get("last_seen", datetime.now().isoformat())
+                from esp32OTA.generic.services.utils import common_utils
+                last_seen_iso = info.get("last_seen", common_utils.get_time_iso())
 
                 heartbeat_data.append({
                     "id": c_s_id,
@@ -123,7 +124,8 @@ class GatewayService:
         and publishes the data back to MQTT.
         """
         # 1. Heartbeat logic (every 15 seconds)
-        now_ts = time.time()
+        from esp32OTA.generic.services.utils import common_utils
+        now_ts = common_utils.get_time_iso()
         if now_ts - cls._last_heartbeat_time >= 15:
             cls.send_heartbeat()
             cls._last_heartbeat_time = now_ts

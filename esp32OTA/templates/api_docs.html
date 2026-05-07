@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZVOLTA - API Documentation</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafbfc;
+            color: #24292e;
+        }
+
+        .navbar {
+            background: white;
+            border-bottom: 1px solid #e1e4e8;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .navbar-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: #1e3a8a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .navbar-brand i {
+            color: #0891b2;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #475569;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #0891b2;
+        }
+
+        .logout-btn {
+            background: #fee2e2;
+            color: #991b1b;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #fecaca;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+            margin-top: 30px;
+            margin-bottom: 50px;
+        }
+
+        .sidebar {
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 25px;
+        }
+
+        .sidebar-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            padding: 0 10px;
+        }
+
+        .module-btn {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            background: white;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            font-weight: 500;
+            color: #475569;
+            transition: all 0.3s;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .module-btn:hover {
+            background: #f6f8fa;
+            border-color: #0891b2;
+            color: #0891b2;
+        }
+
+        .module-btn.active {
+            background: #0891b2;
+            color: white;
+            border-color: #0891b2;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e1e4e8;
+            padding: 30px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e1e4e8;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .method-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .method-badge.get { background: #e3f2fd; color: #1976d2; }
+        .method-badge.post { background: #e8f5e9; color: #388e3c; }
+        .method-badge.put { background: #fff3e0; color: #f57c00; }
+        .method-badge.delete { background: #ffebee; color: #d32f2f; }
+        .method-badge.patch { background: #f3e5f5; color: #7b1fa2; }
+
+        .endpoint-path {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            color: #24292e;
+            font-weight: 600;
+        }
+
+        .copy-btn {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #e1e4e8;
+        }
+
+        .auth-badge {
+            display: inline-block;
+            background: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .try-it-out {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .try-it-title {
+            font-weight: 600;
+            color: #24292e;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: #24292e;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+            background: white;
+            color: #24292e;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #0891b2;
+            box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #e1e4e8;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .file-upload-area:hover {
+            border-color: #0891b2;
+            background: #f0f9ff;
+        }
+
+        .file-upload-area.dragover {
+            border-color: #0891b2;
+            background: #ecfdf5;
+        }
+
+        .file-name {
+            margin-top: 8px;
+            color: #475569;
+            font-size: 0.9rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: #0891b2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0e7490;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f6f8fa;
+            color: #24292e;
+            border: 1px solid #e1e4e8;
+        }
+
+        .btn-secondary:hover {
+            background: #e1e4e8;
+        }
+
+        .response-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e1e4e8;
+        }
+
+        .response-title {
+            font-weight: 600;
+            color: #24292e;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .response-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+
+        .response-status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .response-status.error {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .response-body {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e1e4e8;
+            border-top-color: #0891b2;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            opacity: 0.3;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .sidebar-section {
+                grid-column: 1 / -1;
+            }
+
+            .module-btn {
+                margin-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-rocket"></i> ZVOLTA API
+            </a>
+            <ul class="nav-links">
+                <li><a href="/gateway"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                <li><a href="/logs"><i class="fas fa-bars-chart"></i> Logs</a></li>
+                <li><button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Search</div>
+                <input type="text" class="search-box" id="searchBox" placeholder="Filter endpoints...">
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">Modules</div>
+                <button class="module-btn active" onclick="selectModule('all')">
+                    <i class="fas fa-th-large"></i> All Endpoints
+                </button>
+                <button class="module-btn" onclick="selectModule('UserManagement')">
+                    <i class="fas fa-user"></i> Users
+                </button>
+                <button class="module-btn" onclick="selectModule('DeviceManagement')">
+                    <i class="fas fa-mobile-alt"></i> Devices
+                </button>
+                <button class="module-btn" onclick="selectModule('FirmwareManagement')">
+                    <i class="fas fa-cogs"></i> Firmware
+                </button>
+                <button class="module-btn" onclick="selectModule('GatewayLogging')">
+                    <i class="fas fa-chart-bar"></i> Logging
+                </button>
+                <button class="module-btn" onclick="selectModule('TokenManagement')">
+                    <i class="fas fa-key"></i> Tokens
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="endpointsList"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script>
+        const token = localStorage.getItem('access_token');
+        let allApis = [];
+        let currentModule = 'all';
+
+        if (!token) {
+            window.location.href = '/';
+        }
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            window.location.href = '/';
+        }
+
+        function selectModule(module) {
+            currentModule = module;
+            document.querySelectorAll('.module-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.module-btn').classList.add('active');
+            renderEndpoints();
+        }
+
+        function renderEndpoints() {
+            const container = document.getElementById('endpointsList');
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+
+            let filtered = allApis;
+
+            if (currentModule !== 'all') {
+                filtered = filtered.filter(api => api.module.includes(currentModule));
+            }
+
+            if (searchTerm) {
+                filtered = filtered.filter(api => 
+                    api.endpoint.toLowerCase().includes(searchTerm) ||
+                    api.name.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <p>No endpoints found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map((api, idx) => `
+                <div style="margin-bottom: 40px; border-bottom: 1px solid #e1e4e8; padding-bottom: 30px;">
+                    <div class="endpoint-header">
+                        <span class="method-badge ${api.methods[0].toLowerCase()}">${api.methods[0]}</span>
+                        <span class="endpoint-path">${api.endpoint}</span>
+                        <button class="copy-btn" onclick="copyToClipboard('${api.endpoint}')">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        ${api.is_authenticated ? '<span class="auth-badge">🔐 Requires Auth</span>' : ''}
+                    </div>
+
+                    <div class="try-it-out">
+                        <div class="try-it-title">
+                            <i class="fas fa-play-circle"></i> Try it out
+                        </div>
+
+                        <div id="form-${idx}" data-endpoint="${api.endpoint}" data-method="${api.methods[0]}" data-auth="${api.is_authenticated}">
+                            ${renderFormFields(api, idx)}
+                            <div class="button-group">
+                                <button class="btn btn-primary" onclick="sendRequest(this, '${api.endpoint}', '${api.methods[0]}', ${idx})">
+                                    <i class="fas fa-paper-plane"></i> Send Request
+                                </button>
+                                <button class="btn btn-secondary" onclick="resetForm(this)">
+                                    <i class="fas fa-redo"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="response-${idx}" style="display: none;"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderFormFields(api, idx) {
+            let html = '';
+
+            // Headers
+            if (api.is_authenticated) {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">Authorization</label>
+                        <input type="text" class="form-input" value="x-session-key: ${token}" readonly style="background: #f6f8fa;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Session Type</label>
+                        <input type="text" class="form-input" value="x-session-type: web" readonly style="background: #f6f8fa;">
+                    </div>
+                `;
+            }
+
+            // Body for POST/PUT/PATCH
+            if (['POST', 'PUT', 'PATCH'].includes(api.methods[0])) {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">Content-Type</label>
+                        <select class="form-select" onchange="updateContentType(this, ${idx})">
+                            <option value="application/json">application/json</option>
+                            <option value="multipart/form-data">multipart/form-data (with file upload)</option>
+                        </select>
+                    </div>
+
+                    <div id="file-upload-${idx}" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Upload File</label>
+                            <div class="file-upload-area" onclick="document.getElementById('file-input-${idx}').click();"
+                                ondrop="handleFileDrop(event, ${idx})"
+                                ondragover="handleDragOver(event)">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #0891b2;"></i>
+                                <p style="margin-top: 10px; color: #475569;">Drag and drop or click to upload</p>
+                                <div class="file-name" id="file-name-${idx}"></div>
+                            </div>
+                            <input type="file" id="file-input-${idx}" style="display: none;" onchange="handleFileSelect(event)">
+                        </div>
+                    </div>
+
+                    <div id="json-${idx}">
+                        <div class="form-group">
+                            <label class="form-label">Request Body (JSON)</label>
+                            <textarea class="form-textarea" placeholder='{"key": "value"}' class="request-body"></textarea>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return html;
+        }
+
+        function updateContentType(select, idx) {
+            const fileUpload = document.getElementById(`file-upload-${idx}`);
+            const jsonSection = document.getElementById(`json-${idx}`);
+
+            if (select.value === 'multipart/form-data') {
+                fileUpload.style.display = 'block';
+                jsonSection.style.display = 'none';
+            } else {
+                fileUpload.style.display = 'none';
+                jsonSection.style.display = 'block';
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleFileDrop(e, idx) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                const file = e.dataTransfer.files[0];
+                document.getElementById(`file-input-${idx}`).files = e.dataTransfer.files;
+                document.getElementById(`file-name-${idx}`).textContent = `✅ ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            const idx = e.target.id.replace('file-input-', '');
+            if (file) {
+                document.getElementById(`file-name-${idx}`).textContent = `✅ ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Endpoint copied to clipboard!');
+            });
+        }
+
+        async function sendRequest(button, endpoint, method, idx) {
+            button.disabled = true;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loading-spinner"></span> Sending...';
+
+            const responseContainer = document.getElementById(`response-${idx}`);
+            
+            try {
+                const formContainer = button.closest('[id^="form-"]');
+                const contentType = formContainer.querySelector('.form-select');
+                const requestBody = formContainer.querySelector('.request-body');
+                const fileInput = formContainer.querySelector('[id^="file-input-"]');
+
+                const headers = {
+                    'x-session-key': token,
+                    'x-session-type': 'web'
+                };
+
+                let body;
+                if (contentType && contentType.value === 'multipart/form-data' && fileInput && fileInput.files.length) {
+                    const formData = new FormData();
+                    formData.append('file', fileInput.files[0]);
+                    if (requestBody && requestBody.value.trim()) {
+                        try {
+                            const jsonData = JSON.parse(requestBody.value);
+                            Object.keys(jsonData).forEach(key => {
+                                formData.append(key, jsonData[key]);
+                            });
+                        } catch (e) {
+                            console.error('Invalid JSON in body');
+                        }
+                    }
+                    body = formData;
+                } else if (requestBody && requestBody.value.trim()) {
+                    headers['Content-Type'] = 'application/json';
+                    body = requestBody.value;
+                } else if (method !== 'GET') {
+                    headers['Content-Type'] = 'application/json';
+                }
+
+                const fetchOptions = {
+                    method: method,
+                    headers: body instanceof FormData ? {'x-session-key': token, 'x-session-type': 'web'} : headers,
+                    body: body
+                };
+
+                const response = await fetch(endpoint, fetchOptions);
+                const data = await response.json();
+                const statusClass = response.ok ? 'success' : 'error';
+
+                responseContainer.innerHTML = `
+                    <div class="response-section">
+                        <div class="response-title"><i class="fas fa-check-circle"></i> Response</div>
+                        <span class="response-status ${statusClass}">Status: ${response.status} ${response.statusText}</span>
+                        <div class="response-body"><pre>${JSON.stringify(data, null, 2)}</pre></div>
+                    </div>
+                `;
+                responseContainer.style.display = 'block';
+            } catch (error) {
+                responseContainer.innerHTML = `
+                    <div class="response-section">
+                        <div class="response-title"><i class="fas fa-times-circle"></i> Error</div>
+                        <div class="response-body"><pre>${error.message}</pre></div>
+                    </div>
+                `;
+                responseContainer.style.display = 'block';
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+        }
+
+        function resetForm(button) {
+            const formContainer = button.closest('[id^="form-"]');
+            formContainer.querySelectorAll('textarea, input[type="text"]:not([readonly])').forEach(field => field.value = '');
+            formContainer.querySelectorAll('input[type="file"]').forEach(field => field.value = '');
+            const idx = formContainer.id.replace('form-', '');
+            document.getElementById(`response-${idx}`).style.display = 'none';
+        }
+
+        // Initialize
+        async function init() {
+            allApis = {{ apis | tojson }};
+            renderEndpoints();
+            
+            document.getElementById('searchBox').addEventListener('keyup', renderEndpoints);
+        }
+
+        init();
+    </script>
+</body>
+</html>

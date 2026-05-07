@@ -14,19 +14,85 @@ The server listens for status and telemetry data from devices on the following t
 ### A. Device Status
 - **Topic**: `ZV/DEVICES/+/status/#`
 - **Pattern**: `ZV/DEVICES/{device_id}/status`
-- **Payload Example**: `{"t": 123456789, "s": [{"id": 1, "st": 1, "sg": "w"}], "e": []}`
+- **Incoming Payload (Device -> Server)**: 
+  ```json
+  {
+    "t": 123456789, 
+    "s": [
+      {
+        "id": 1, 
+        "st": 1, 
+        "sg": "w", 
+        "e": ["E2"]
+      }
+    ], 
+    "e": []
+  }
+  ```
+- **Mapped Payload (Server -> API)**:
+  ```json
+  {
+    "c_s_id": 123,
+    "s": [
+      {
+        "id": 1,
+        "status": 1,
+        "signal_type": "wifi",
+        "e": ["E2"]
+      }
+    ],
+    "e": []
+  }
+  ```
 - **Logic**: 
-  - Validates uniqueness using the timestamp (`t`).
-  - Maps signal types (`w` -> `wifi`, `g` -> `gsm`).
-  - Forwards data to the OrkoFleet API.
-  - Updates GatewayService last-seen cache.
+  - **Deduplication**: Validates uniqueness using the timestamp (`t`).
+  - **Client ID Lookup**: Finds `client_id` (c_s_id) from the database using `device_id`.
+  - **Mapping**: Converts `st` to `status` and `sg` to `signal_type` (`w` -> `wifi`, `g` -> `gsm`).
+  - **Logging**: Always logs to terminal; saves to database activity log **only if error codes (`e`) are present**.
+  - **API**: Forwards to `{ORKOFLEET_BASE_URL}/api/v2/power-sockets/status`.
+  - **Cache**: Updates `GatewayService` last-seen status.
 
 ### B. Device Usage
 - **Topic**: `ZV/DEVICES/+/usage/#`
 - **Pattern**: `ZV/DEVICES/{device_id}/usage`
+- **Incoming Payload (Device -> Server)**:
+  ```json
+  {
+    "t": 123456789,
+    "d": {
+      "s": 1,
+      "se": "sess_123",
+      "co": 1500,
+      "cu": 5.2,
+      "v": 230,
+      "d": 3600,
+      "is": true
+    }
+  }
+  ```
+- **Mapped Payload (Server -> API)**:
+  ```json
+  {
+    "socket_id": 1,
+    "session_id": "sess_123",
+    "consumption": 1500,
+    "current": 5.2,
+    "voltage": 230,
+    "duration": 3600,
+    "is_completed": true
+  }
+  ```
 - **Logic**:
-  - Tracks energy/telemetry usage data for reporting.
-  - De-duplicates based on timestamp.
+  - **Deduplication**: Prevents processing duplicate timestamps.
+  - **Field Mapping**: 
+    - `s` -> `socket_id`
+    - `se` -> `session_id`
+    - `co` -> `consumption`
+    - `cu` -> `current`
+    - `v` -> `voltage`
+    - `d` -> `duration`
+    - `is` -> `is_completed`
+  - **API**: Forwards to `{ORKOFLEET_BASE_URL}/api/v2/charge-sessions/add-usage-data`.
 
 ### C. Broker Stats
 - **Topic**: `$SYS/broker/#`

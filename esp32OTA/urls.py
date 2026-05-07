@@ -2,12 +2,14 @@
 
 # Framework imports
 from flask import jsonify, render_template, request
+from datetime import datetime
 
 
 # Local imports
 from esp32OTA import app, config
 from esp32OTA.Services.GatewayService import GatewayService
 from esp32OTA.Services.ConfigController import ConfigController
+from esp32OTA.Services.LogCaptureService import LogCaptureService
 from esp32OTA.generic.services.utils import constants, decorators, response_utils, common_utils
 from esp32OTA.UserManagement.views.users import users_bp
 from esp32OTA.DeviceManagement.views.device import device_bp
@@ -60,6 +62,241 @@ def gateway_config():
     
     data = common_utils.posted()
     return ConfigController.update_config(data)
+
+
+@app.route("/api-docs", methods=["GET"])
+def api_docs():
+    api_list = []
+    
+    for rule in app.url_map.iter_rules():
+        if rule.endpoint == 'static' or 'api_docs' in rule.endpoint:
+            continue
+            
+        view_func = app.view_functions[rule.endpoint]
+        methods = list(rule.methods - {'HEAD', 'OPTIONS'})
+        
+        # Determine the name based on whether it's a blueprint or main app
+        name = rule.endpoint.split('.')[-1] if '.' in rule.endpoint else rule.endpoint
+        
+        api_info = {
+            "endpoint": rule.rule,
+            "methods": methods,
+            "name": name,
+            "full_endpoint": rule.endpoint,
+            "doc": view_func.__doc__ if view_func.__doc__ else "No description available.",
+            "module": view_func.__module__,
+            "required_fields": [],
+            "optional_fields": [],
+            "is_authenticated": False,
+            "required_headers": ["Content-Type"],
+            "auth_headers": ["x-session-key", "x-session-type"],
+            "roles_allowed": []
+        }
+        
+        # Try to detect decorators and extract information
+        try:
+            if hasattr(view_func, '__closure__') and view_func.__closure__:
+                for cell in view_func.__closure__:
+                    contents = cell.cell_contents
+                    
+                    # Check for required/optional fields
+                    if isinstance(contents, list):
+                        if not api_info["required_fields"]:
+                            api_info["required_fields"] = contents
+                        elif not api_info["optional_fields"]:
+                            api_info["optional_fields"] = contents
+                    
+                    # Check for authentication decorator
+                    if isinstance(contents, bool) or (isinstance(contents, str) and 'authenticated' in str(contents)):
+                        api_info["is_authenticated"] = True
+                        if "Authorization" not in api_info["required_headers"]:
+                            api_info["required_headers"].append("Authorization")
+                    
+                    # Also look for nested closure (the actual decorator)
+                    if callable(contents) and hasattr(contents, '__closure__') and contents.__closure__:
+                        for inner_cell in contents.__closure__:
+                            inner_contents = inner_cell.cell_contents
+                            if isinstance(inner_contents, list):
+                                if not api_info["required_fields"]:
+                                    api_info["required_fields"] = inner_contents
+                                elif not api_info["optional_fields"]:
+                                    api_info["optional_fields"] = inner_contents
+                                # Check if it's roles info
+                                elif all(isinstance(x, int) for x in inner_contents if isinstance(x, int)):
+                                    api_info["roles_allowed"] = inner_contents
+        except:
+            pass
+        
+        # Check endpoint name/path for common patterns
+        if '/login' in rule.rule and rule.methods != {'HEAD', 'OPTIONS', 'GET'}:
+            if "Authorization" not in api_info["required_headers"]:
+                pass  # Login doesn't need auth
+        elif any(pattern in rule.rule for pattern in ['/create', '/update', '/delete', '/force', '/read']):
+            api_info["is_authenticated"] = True
+            if "Authorization" not in api_info["required_headers"]:
+                api_info["required_headers"].append("Authorization")
+
+        api_list.append(api_info)
+        
+    return render_template("api_docs.html", apis=api_list)
+
+
+@app.route("/logs", methods=["GET"])
+def logs_page():
+    """Display application logs page"""
+    return render_template("logs.html")
+
+
+@app.route("/api/logs", methods=["GET"])
+def get_logs():
+    """API endpoint to fetch application logs"""
+    limit = request.args.get('limit', default=100, type=int)
+    offset = request.args.get('offset', default=0, type=int)
+    
+    logs = LogCaptureService.get_logs(limit=limit, offset=offset)
+    total = len(LogCaptureService.get_logs())
+    
+    return jsonify({
+        "logs": logs,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    })
+
+
+@app.route("/api/logs/clear", methods=["DELETE"])
+def clear_logs():
+    """Clear all logs"""
+    LogCaptureService.clear_logs()
+    return jsonify({"message": "Logs cleared successfully"})
+
+
+@app.route("/api/mqtt/broker-logs", methods=["GET"])
+def get_mqtt_broker_logs():
+    """Get MQTT broker statistics and logs from $SYS/broker topics"""
+    try:
+        from esp32OTA.Services.mqtt_client import mqtt_service
+        
+        broker_stats = mqtt_service.broker_stats or {}
+        
+        # Format broker stats into log-like entries
+        logs = []
+        
+        if broker_stats:
+            # Add version info
+            if 'version' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"MQTT Broker Version: {broker_stats['version']}"
+                })
+            
+            # Add uptime
+            if 'uptime' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Broker Uptime: {broker_stats['uptime']} seconds"
+                })
+            
+            # Add client info
+            if 'clients/total' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Total Clients: {broker_stats['clients/total']}"
+                })
+            
+            if 'clients/connected' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Connected Clients: {broker_stats['clients/connected']}"
+                })
+            
+            # Add subscription info
+            if 'subscriptions/count' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Active Subscriptions: {broker_stats['subscriptions/count']}"
+                })
+            
+            # Add message stats
+            if 'messages/stored' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Stored Messages: {broker_stats['messages/stored']}"
+                })
+            
+            if 'messages/received/total' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Total Messages Received: {broker_stats['messages/received/total']}"
+                })
+            
+            if 'messages/sent/total' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Total Messages Sent: {broker_stats['messages/sent/total']}"
+                })
+            
+            # Add publish stats
+            if 'publish/messages/received' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Published Messages Received: {broker_stats['publish/messages/received']}"
+                })
+            
+            if 'publish/messages/sent' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Published Messages Sent: {broker_stats['publish/messages/sent']}"
+                })
+            
+            # Add load info
+            if 'load/messages/received/1min' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Load (1min): {broker_stats['load/messages/received/1min']} msg/sec received"
+                })
+            
+            if 'load/messages/sent/1min' in broker_stats:
+                logs.append({
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'level': 'INFO',
+                    'message': f"Load (1min): {broker_stats['load/messages/sent/1min']} msg/sec sent"
+                })
+        else:
+            logs.append({
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'level': 'WARNING',
+                'message': 'No MQTT broker statistics available. Ensure MQTT broker is connected.'
+            })
+        
+        return jsonify({
+            "logs": logs,
+            "total": len(logs),
+            "broker_connected": bool(broker_stats)
+        })
+    
+    except Exception as e:
+        logger.error(f"Error fetching MQTT broker logs: {str(e)}")
+        return jsonify({
+            "logs": [{
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'level': 'ERROR',
+                'message': f"Error fetching broker logs: {str(e)}"
+            }],
+            "total": 1,
+            "broker_connected": False
+        }), 500
 
 
 app.register_blueprint(users_bp, url_prefix="/api/users")

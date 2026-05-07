@@ -133,11 +133,12 @@ class MQTTClientService:
             # Update GatewayService with local knowledge for heartbeats
             from esp32OTA.Services.GatewayService import GatewayService
             from esp32OTA import app
+            from esp32OTA.generic.services.utils import common_utils
             with app.app_context():
                 GatewayService._last_data[device_id] = {
                     "c_s_id": client_id,
                     "online": True,
-                    "last_seen": datetime.now().isoformat()
+                    "last_seen": common_utils.get_time_iso()
                 }
 
             # 2. Map incoming status format to requested API format

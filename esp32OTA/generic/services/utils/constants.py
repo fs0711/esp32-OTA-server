@@ -176,6 +176,9 @@ TOKEN = "token"
 TOKEN__ACCESS_TOKEN = "access_token"
 TOKEN__USER = "user"
 TOKEN__PURPOSE = "purpose"
+TOKEN__SERVICE_NAME = "service_name"
+TOKEN__IS_ACTIVE = "is_active"
+TOKEN__CREATED_AT = "created_at"
 TOKEN__EXPIRY_TIME = "expiry_time"
 TOKEN__IS_EXPIRED = "is_expired"
 TOKEN__IS_REVOKED = "is_revoked"
@@ -230,10 +233,17 @@ DEVICE__IMEI = "imei"
 DEVICE__QR_CODE = "qr_code"
 DEVICE__CONNECTION = "connection"
 DEVICE__CLIENT_ID = "client_id"
+DEVICE__CHANGES_REQUIRED = "changes_required"
 
 
 REQUIRED_FIELDS_LIST__DEVICE = [
     DEVICE__TYPE
+]
+
+
+CHANGES_REQUIRED_FIELDS_LIST__DEVICE = [
+    ID,
+    DEVICE__CHANGES_REQUIRED
 ]
 
 OPTIONAL_FIELDS_LIST__DEVICE = [

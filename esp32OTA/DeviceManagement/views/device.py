@@ -66,3 +66,14 @@ def update_view(data):
 )
 def config_view(data):
     return DeviceController.config_controller(data=data, method=request.method)
+
+
+@device_bp.route("/force_update", methods=["POST"])
+@decorators.is_authenticated
+@decorators.keys_validator(
+    constants.CHANGES_REQUIRED_FIELDS_LIST__DEVICE,
+    [],
+    request_form_data=True
+)
+def force_update_view(data):
+    return DeviceController.force_update_controller(data=data)

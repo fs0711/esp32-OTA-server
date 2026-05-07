@@ -10,6 +10,7 @@ import os
 # Local imports
 from esp32OTA.generic.database import initialize_db
 from esp32OTA.config import config
+from esp32OTA.Services.LogCaptureService import LogCaptureService
 
 
 def setup_logging(app):
@@ -71,6 +72,9 @@ app = Flask(__name__)
 CORS(app)
 app.config["MONGODB_HOST"] = config.MONGO_DB_URI
 app.config["UPLOAD_FOLDER"] = config.upload_files_path
+
+# Start log capture BEFORE setting up logging to capture all logs
+LogCaptureService.start_capture()
 
 # Setup logging first
 log_file_path = setup_logging(app)

@@ -120,6 +120,30 @@ def roles_allowed(role_ids):
     return wrapper
 
 
+def is_service_authenticated(view_function):
+
+    @wraps(view_function)
+    def wrapper(*args, **kwargs):
+        from flask import request
+        from esp32OTA.TokenManagement.controllers.TokenController import TokenController
+        
+        token = request.headers.get('x-session-token')
+        if not token:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_UNAUTHENTICATED_ACCESS,
+                response_message="Missing x-session-token header")
+        
+        token_obj = TokenController.validate_token(token)
+        if not token_obj:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_UNAUTHENTICATED_ACCESS,
+                response_message="Invalid or expired service token")
+        
+        return view_function(*args, **kwargs)
+
+    return wrapper
+
+
 def blocked(view_function):
 
     @wraps(view_function)

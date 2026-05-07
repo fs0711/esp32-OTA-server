@@ -176,9 +176,8 @@ class FirmwareController(Controller):
             updated_count += 1
 
             # Prepare MQTT payload for the device with shortened keys
-            import time
             mqtt_payload = {
-                "t": int(time.time()),
+                "t": common_utils.get_time_iso(),
                 "f_f": str(firmware.id),
                 "f_v": str(device.fw_version) if device.fw_version else "",
                 "h_v": str(device.hw_version) if device.hw_version else "",

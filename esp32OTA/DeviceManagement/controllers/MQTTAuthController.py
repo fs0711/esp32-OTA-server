@@ -52,20 +52,36 @@ class MQTTAuthController(Controller):
         # Get the device's access token (this will be the HMAC secret)
         secret_key = device_obj[constants.DEVICE__ACCESS_TOKEN]
         
-        # Get current server time and round it (to match generator logic)
-        current_time = common_utils.get_time() // 1000  # Convert ms to seconds
-        rounded_timestamp = str(current_time - (current_time % 300))
-
-        # Compute expected HMAC signature using device_id and rounded timestamp
-        message = f"{username}{rounded_timestamp}"
-        expected_signature = hmac.new(
-            secret_key.encode('utf-8'),
-            message.encode('utf-8'),
-            hashlib.sha256
-        ).hexdigest()
+        # Get current server time (in seconds)
+        current_time = common_utils.get_time() // 1000  
         
-        # Compare the provided password (which is now just the signature) with expected signature
-        if hmac.compare_digest(password, expected_signature):
+        # Define the sliding window intervals (previous, current, and next 5-minute blocks)
+        # Each interval is 300 seconds (5 minutes)
+        base_timestamp = current_time - (current_time % 300)
+        timestamps_to_check = [
+            str(base_timestamp - 300), # Previous 5 mins
+            str(base_timestamp),       # Current 5 mins
+            str(base_timestamp + 300)  # Next 5 mins
+        ]
+
+        authenticated = False
+        for rounded_timestamp in timestamps_to_check:
+            # Compute expected HMAC signature for this timestamp
+            message = f"{username}{rounded_timestamp}"
+            raw_signature = hmac.new(
+                secret_key.encode('utf-8'),
+                message.encode('utf-8'),
+                hashlib.sha256
+            ).digest()
+            
+            expected_signature = base64.urlsafe_b64encode(raw_signature).rstrip(b'=').decode('utf-8')
+            
+            # Compare with provided password
+            if hmac.compare_digest(password, expected_signature):
+                authenticated = True
+                break
+        
+        if authenticated:
             return response_utils.get_response_object(
                 response_code=response_codes.CODE_SUCCESS,
                 response_message="Authentication successful",

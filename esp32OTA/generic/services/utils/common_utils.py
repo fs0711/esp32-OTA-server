@@ -59,7 +59,7 @@ def get_time(offset=0, days=0):
          datetime.timedelta(hours=hours, days=days)).timetuple()))*1000
 
 def get_time_iso():
-    return int(datetime.datetime.now().strftime("%H%M"))
+    return int(datetime.datetime.now().timestamp())
 
 def get_day():
     return datetime.datetime.now().isoweekday()
