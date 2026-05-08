@@ -6,6 +6,7 @@ import requests
 from datetime import datetime
 from esp32OTA.config import config
 from esp32OTA.DeviceManagement.models.Device import Device
+from esp32OTA.generic.services.utils import common_utils, constants
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,8 @@ class MQTTClientService:
                 return # Silently stop if device not in DB
             else:
                 # Get the client_id (OrkoFleet's c_s_id)
+                current_time = common_utils.get_time_iso()
+                device[constants.DEVICE__CONNECTION] = {"last_seen": current_time}
                 client_id = getattr(device, 'client_id', None)
                 if not client_id:
                     connection_data = getattr(device, 'connection', {})
@@ -130,17 +133,6 @@ class MQTTClientService:
             if not client_id:
                 return
 
-            # Update GatewayService with local knowledge for heartbeats
-            from esp32OTA.Services.GatewayService import GatewayService
-            from esp32OTA import app
-            from esp32OTA.generic.services.utils import common_utils
-            with app.app_context():
-                GatewayService._last_data[device_id] = {
-                    "id": device_id,
-                    "c_s_id": client_id,
-                    "timestamp": new_timestamp,  # Store device's timestamp for online/offline check
-                    "last_seen": common_utils.get_time_iso()
-                }
 
             # 2. Map incoming status format to requested API format
             # Device sends: {"t": 123, "s": [{"id": 2, "st": 0, "sg": "w", "e": ["E2"]}], "e": []}
