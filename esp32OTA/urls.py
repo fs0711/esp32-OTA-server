@@ -41,11 +41,48 @@ def gateway_dashboard():
 
 @app.route("/api/gateway/data", methods=["GET"])
 def gateway_data():
+    from esp32OTA.DeviceManagement.models.Device import Device
+    from datetime import datetime, timedelta, timezone
+    
     is_connected = GatewayService.get_mqtt_status()
     broker_stats = GatewayService.get_broker_stats()
     
-    # Sort devices by ID for consistent display
-    devices = sorted(GatewayService._last_data.values(), key=lambda x: x['id'])
+    # Fetch devices directly from Device table instead of in-memory cache
+    try:
+        current_time = datetime.now(timezone.utc)
+        heartbeat_threshold = timedelta(minutes=2)
+        
+        # Get all active devices with client_id
+        db_devices = Device.objects(
+            client_id__ne=None, 
+            status=constants.OBJECT_STATUS_ACTIVE
+        ).only('device_id', 'connection', 'created_on')
+        
+        devices = []
+        for device in db_devices:
+            connection = device.connection or {}
+            last_update = connection.get('last_update', '')
+            device_status = connection.get('status', 'offline')
+            
+            # Use created_on as fallback if last_update is empty
+            if not last_update and device.created_on:
+                last_update = device.created_on.isoformat() if hasattr(device.created_on, 'isoformat') else str(device.created_on)
+            
+            # Determine if device is online based on device status field
+            is_online = device_status.lower() == 'online'
+            
+            devices.append({
+                "id": str(device.device_id),
+                "online": is_online,
+                "last_seen": last_update
+            })
+        
+        # Sort devices by ID for consistent display
+        devices = sorted(devices, key=lambda x: x['id'])
+        
+    except Exception as e:
+        logger.error(f"Error fetching devices from database: {str(e)}")
+        devices = []
     
     return jsonify({
         "mqtt_connected": is_connected,

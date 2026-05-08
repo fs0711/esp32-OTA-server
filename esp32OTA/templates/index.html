@@ -718,7 +718,19 @@
                         </tr>
                     `;
                 } else {
-                    tbody.innerHTML = data.devices.map(device => `
+                    tbody.innerHTML = data.devices.map(device => {
+                        let lastSeenText = 'Never';
+                        if (device.last_seen) {
+                            try {
+                                const date = new Date(device.last_seen);
+                                if (!isNaN(date.getTime())) {
+                                    lastSeenText = date.toLocaleString();
+                                }
+                            } catch (e) {
+                                lastSeenText = 'Invalid Date';
+                            }
+                        }
+                        return `
                         <tr>
                             <td class="device-id">${device.id}</td>
                             <td>
@@ -729,9 +741,10 @@
                                     </span>
                                 </div>
                             </td>
-                            <td class="last-seen">${new Date(device.last_seen).toLocaleString()}</td>
+                            <td class="last-seen">${lastSeenText}</td>
                         </tr>
-                    `).join('');
+                    `;
+                    }).join('');
                 }
             } catch (error) {
                 console.error('Error loading dashboard:', error);
