@@ -136,8 +136,9 @@ class MQTTClientService:
             from esp32OTA.generic.services.utils import common_utils
             with app.app_context():
                 GatewayService._last_data[device_id] = {
+                    "id": device_id,
                     "c_s_id": client_id,
-                    "online": True,
+                    "timestamp": new_timestamp,  # Store device's timestamp for online/offline check
                     "last_seen": common_utils.get_time_iso()
                 }
 

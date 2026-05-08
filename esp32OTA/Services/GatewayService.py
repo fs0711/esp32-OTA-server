@@ -20,14 +20,20 @@ class GatewayService:
     @classmethod
     def send_heartbeat(cls):
         """
-        Gathers online/offline status of all devices using c_s_id as the ID,
-        and sends a POST request to the heartbeat API.
+        Gathers online/offline status of all devices using c_s_id as the ID.
+        Compares device timestamp against current time:
+        - If difference > 2 minutes: offline
+        - If difference <= 2 minutes: online
+        Sends a POST request to the heartbeat API.
         """
         heartbeat_data = []
         
         # Proactively check DB to ensure all devices are reported
         try:
+            from esp32OTA.generic.services.utils import common_utils
+            current_time = datetime.now().timestamp()  # Current time in Unix epoch
             db_devices = Device.objects.only('device_id', 'client_id', 'connection')
+            
             for dev in db_devices:
                 d_id = str(dev.device_id)
                 c_s_id = getattr(dev, 'client_id', None)
@@ -39,14 +45,45 @@ class GatewayService:
                     continue
                 
                 info = cls._last_data.get(d_id, {})
-                online_status = info.get("online", True)
-                from esp32OTA.generic.services.utils import common_utils
+                device_timestamp = info.get("timestamp")  # Device's timestamp from MQTT
+                
+                # Determine online/offline status based on timestamp difference
+                online_status = True  # Default to online
                 last_seen_iso = info.get("last_seen", common_utils.get_time_iso())
+                
+                if device_timestamp is not None:
+                    # Calculate difference in seconds
+                    time_diff = current_time - device_timestamp
+                    # If difference > 120 seconds (2 minutes), mark offline
+                    if time_diff > 120:
+                        online_status = False
+                    else:
+                        online_status = True
+                    
+                    # Convert device timestamp to ISO format for last_seen
+                    try:
+                        last_seen_iso = datetime.fromtimestamp(device_timestamp).isoformat()
+                    except:
+                        last_seen_iso = common_utils.get_time_iso()
 
                 heartbeat_data.append({
                     "id": c_s_id,
                     "online": online_status, # Default to true if in DB
                     "last_seen": last_seen_iso
+                })
+
+                # Update _last_data with online/offline status for dashboard
+                if d_id not in cls._last_data:
+                    # Create entry if device never sent MQTT message
+                    cls._last_data[d_id] = {
+                        "id": d_id,
+                        "c_s_id": c_s_id
+                    }
+                
+                cls._last_data[d_id].update({
+                    "online": online_status,
+                    "last_seen": last_seen_iso,
+                    "timestamp": current_time  # Update timestamp to now
                 })
 
                 # Update Device connection status in DB
@@ -60,16 +97,45 @@ class GatewayService:
                     logger.error(f"[HB] Error updating device {d_id} in DB: {update_err}")
         except Exception as db_err:
             logger.error(f"[HB] DB Error: {db_err}")
-            # Fallback to dictionary
+            # Fallback to dictionary - use same timestamp-based logic
+            from esp32OTA.generic.services.utils import common_utils
+            current_time = datetime.now().timestamp()
             for device_id, info in cls._last_data.items():
                 c_s_id = info.get("c_s_id", device_id)
                 # Skip devices with null/None IDs
                 if c_s_id is None:
                     continue
+                
+                device_timestamp = info.get("timestamp")
+                online_status = True  # Default to online
+                last_seen_iso = info.get("last_seen", common_utils.get_time_iso())
+                
+                if device_timestamp is not None:
+                    time_diff = current_time - device_timestamp
+                    online_status = time_diff <= 120  # True if within 2 minutes
+                    try:
+                        last_seen_iso = datetime.fromtimestamp(device_timestamp).isoformat()
+                    except:
+                        last_seen_iso = common_utils.get_time_iso()
+                
                 heartbeat_data.append({
                     "id": c_s_id,
-                    "online": info.get("online", False),
-                    "last_seen": info.get("last_seen")
+                    "online": online_status,
+                    "last_seen": last_seen_iso
+                })
+                
+                # Update _last_data with online/offline status for dashboard
+                if device_id not in cls._last_data:
+                    # Create entry if device never sent MQTT message
+                    cls._last_data[device_id] = {
+                        "id": device_id,
+                        "c_s_id": c_s_id
+                    }
+                
+                cls._last_data[device_id].update({
+                    "online": online_status,
+                    "last_seen": last_seen_iso,
+                    "timestamp": current_time  # Update timestamp to now
                 })
 
         if not heartbeat_data:
@@ -131,14 +197,7 @@ class GatewayService:
         Loads all active devices, fetches status from external API using client_id,
         and publishes the data back to MQTT.
         """
-        # 1. Heartbeat logic (every 15 seconds)
-        from esp32OTA.generic.services.utils import common_utils
-        now_ts = common_utils.get_time_iso()
-        if now_ts - cls._last_heartbeat_time >= 15:
-            cls.send_heartbeat()
-            cls._last_heartbeat_time = now_ts
-
-        # 2. Ensure MQTT service is started
+        # 1. Ensure MQTT service is started
         if not mqtt_service.client.is_connected():
             try:
                 mqtt_service.start()
@@ -236,17 +295,13 @@ class GatewayService:
                             "status": api_data,
                             "usage": cls._last_data.get(device.device_id, {}).get("payloads", {}).get("usage", {})
                         },
-                        "online": True,
+                        "timestamp": int(current_time.timestamp()),  # Store epoch timestamp for heartbeat check
                         "last_seen": current_time.isoformat()
                     }
                 else:
                     print(f"[{datetime.now().strftime('%H:%M:%S')}] [GATEWAY] ERR {client_id}: {response.status_code}")
-                    if device.device_id in cls._last_data:
-                        cls._last_data[device.device_id]["online"] = False
                     logger.error(f"[GATEWAY] API Error for {client_id}: {response.status_code}")
                     
             except Exception as e:
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] [GATEWAY] ERR {device.device_id}: {str(e)[:50]}")
-                if device.device_id in cls._last_data:
-                    cls._last_data[device.device_id]["online"] = False
                 logger.error(f"[GATEWAY] Error processing {device.device_id}: {str(e)}")

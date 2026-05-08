@@ -26,6 +26,11 @@ def register_scheduled_tasks(scheduler):
     def gateway_poll_task():
         GatewayService.poll_devices()
 
+    @scheduler.task('interval', id='gateway_heartbeat', seconds=15, misfire_grace_time=60, max_instances=1)
+    def gateway_heartbeat_task():
+        """Send device heartbeat every 15 seconds to update online/offline status."""
+        GatewayService.send_heartbeat()
+
     # # Example 3: Task that runs at a specific time every day
     # @scheduler.task('cron', id='daily_report', hour=0, minute=0, misfire_grace_time=900)
     # def generate_daily_report():
