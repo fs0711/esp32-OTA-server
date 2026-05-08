@@ -125,7 +125,7 @@ def is_service_authenticated(view_function):
     @wraps(view_function)
     def wrapper(*args, **kwargs):
         from flask import request
-        from esp32OTA.TokenManagement.controllers.TokenController import TokenController
+        from esp32OTA.APITokenManagement.controllers.APITokenController import APITokenController
         
         token = request.headers.get('x-session-token')
         if not token:
@@ -133,7 +133,7 @@ def is_service_authenticated(view_function):
                 response_code=response_codes.CODE_UNAUTHENTICATED_ACCESS,
                 response_message="Missing x-session-token header")
         
-        token_obj = TokenController.validate_token(token)
+        token_obj = APITokenController.validate_token(token)
         if not token_obj:
             return response_utils.get_response_object(
                 response_code=response_codes.CODE_UNAUTHENTICATED_ACCESS,

@@ -40,7 +40,7 @@ FILTER_DATETIME_FORMAT = "%d %m %Y %H:%M:%S"
 TIME_ZONE = "Asia/Karachi"
 
 FRONTEND_URL = "https://iot.digtrosoft.com"
-MQTT_BROKER_HOST = "192.168.100.195"
+MQTT_BROKER_HOST = "mqtt.zvolta.com"
 MQTT_BROKER_PORT = 1885
 ORKOFLEET_BASE_URL = "https://smartswitch.orkofleet.com"
 MONGO_DB_USER = "zvolta_admin"

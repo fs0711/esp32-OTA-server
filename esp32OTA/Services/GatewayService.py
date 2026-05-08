@@ -34,6 +34,10 @@ class GatewayService:
                 if not c_s_id:
                     c_s_id = dev.connection.get('client_id') if isinstance(dev.connection, dict) else d_id
                 
+                # Skip devices with null/None IDs
+                if c_s_id is None:
+                    continue
+                
                 info = cls._last_data.get(d_id, {})
                 online_status = info.get("online", True)
                 from esp32OTA.generic.services.utils import common_utils
@@ -58,8 +62,12 @@ class GatewayService:
             logger.error(f"[HB] DB Error: {db_err}")
             # Fallback to dictionary
             for device_id, info in cls._last_data.items():
+                c_s_id = info.get("c_s_id", device_id)
+                # Skip devices with null/None IDs
+                if c_s_id is None:
+                    continue
                 heartbeat_data.append({
-                    "id": info.get("c_s_id", device_id),
+                    "id": c_s_id,
                     "online": info.get("online", False),
                     "last_seen": info.get("last_seen")
                 })

@@ -1,11 +1,20 @@
-# Python imports
-
 # Local imports
-from esp32OTA.generic import models, db
+from esp32OTA.generic.models import Model
 from esp32OTA.generic.services.utils import constants
+from esp32OTA.generic.database import db
 
 
-class Token(models.Model):
+class APIToken(Model):
+    access_token = db.StringField(required=True, unique=True)
+    service_name = db.StringField(required=True)
+    expiry_time = db.IntField(required=True)
+    is_active = db.BooleanField(default=True)
+    last_used = db.IntField(default=0)
+
+    meta = {
+        'collection': 'apitoken'
+    }
+
     @classmethod
     def validation_rules(self):
         return {
@@ -20,15 +29,6 @@ class Token(models.Model):
             constants.TOKEN__EXPIRY_TIME: [{"rule": "required"}],
         }
 
-    @classmethod
-    def update_validation_rules(self):
-        return {}
-
-    access_token = db.StringField(required=True, unique=True)
-    service_name = db.StringField(required=True)
-    expiry_time = db.IntField(required=True)
-    is_active = db.BooleanField(default=True)
-
     def display(self):
         return {
             "id": str(self.id),
@@ -36,6 +36,6 @@ class Token(models.Model):
             "service_name": self.service_name,
             "expiry_time": self.expiry_time,
             "is_active": self.is_active,
+            "last_used": self.last_used,
             "created_on": self.created_on
         }
-

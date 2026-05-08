@@ -321,4 +321,65 @@ class DeviceController(Controller):
             device[constants.DEVICE__CONNECTION] = online
             device.save()
         return True
+
+    @classmethod
+    def ping_controller(cls, data):
+        """
+        Sends a ping command to a device identified by client_id (c_s_id).
+        The payload is sent exactly as provided via MQTT.
+        
+        Expected data format:
+        {
+            "c_s_id": 15,
+            "s": [
+                {
+                    "status": 0,
+                    "session_id": null,
+                    "box_open_request": false,
+                    "credit": 0.0
+                }
+            ]
+        }
+        """
+        c_s_id = data.get("c_s_id")
+        
+        if not c_s_id:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_VALIDATION_FAILED,
+                response_message="c_s_id (client_id) is required",
+                response_data=[]
+            )
+        
+        # Find device by client_id
+        device = Device.objects(client_id=str(c_s_id)).first()
+        
+        if not device:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_RECORD_NOT_FOUND,
+                response_message=f"Device with client_id {c_s_id} not found",
+                response_data=[]
+            )
+        
+        # Prepare the payload (the entire data dict) and post to MQTT
+        topic = f"ZV/DEVICES/{device.device_id}/ping"
+        
+        try:
+            mqtt_service.publish(topic, data)
+            
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_SUCCESS,
+                response_message="Ping sent successfully",
+                response_data={
+                    "device_id": str(device.device_id),
+                    "client_id": c_s_id,
+                    "topic": topic,
+                    "payload": data
+                }
+            )
+        except Exception as e:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_OPERATION_FAILED,
+                response_message=f"Failed to send ping: {str(e)}",
+                response_data=[]
+            )
     

@@ -77,3 +77,14 @@ def config_view(data):
 )
 def force_update_view(data):
     return DeviceController.force_update_controller(data=data)
+
+
+@device_bp.route("/ping", methods=["POST"])
+@decorators.is_service_authenticated
+@decorators.keys_validator(
+    ["c_s_id"],
+    ["s"],
+    request_form_data=True
+)
+def ping_view(data):
+    return DeviceController.ping_controller(data=data)
