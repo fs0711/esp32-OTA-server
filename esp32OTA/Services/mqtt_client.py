@@ -125,6 +125,7 @@ class MQTTClientService:
                 current_time = common_utils.get_time_iso()
                 device[constants.DEVICE__CONNECTION] = {"last_seen": current_time ,
                                                         "status":device[constants.DEVICE__CONNECTION].get("status")}
+                device.save()
                 client_id = getattr(device, 'client_id', None)
                 if not client_id:
                     connection_data = getattr(device, 'connection', {})
