@@ -257,8 +257,8 @@
 
                 const data = await response.json();
 
-                if (response.ok && data.access_token) {
-                    localStorage.setItem('access_token', data.access_token);
+                if (response.ok && data.response_data && data.response_data.access_token) {
+                    localStorage.setItem('access_token', data.response_data.access_token);
                     
                     document.getElementById('successText').textContent = 'Login successful! Redirecting...';
                     successMessage.classList.add('show');
@@ -268,7 +268,7 @@
                     }, 1500);
                 } else {
                     errorMessage.classList.add('show');
-                    document.getElementById('errorText').textContent = data.message || 'Invalid credentials. Please try again.';
+                    document.getElementById('errorText').textContent = data.response_message || 'Invalid credentials. Please try again.';
                 }
             } catch (error) {
                 errorMessage.classList.add('show');
