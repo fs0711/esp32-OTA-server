@@ -123,7 +123,8 @@ class MQTTClientService:
             else:
                 # Get the client_id (OrkoFleet's c_s_id)
                 current_time = common_utils.get_time_iso()
-                device[constants.DEVICE__CONNECTION] = {"last_seen": current_time}
+                device[constants.DEVICE__CONNECTION] = {"last_seen": current_time ,
+                                                        "status":device[constants.DEVICE__CONNECTION].get("status")}
                 client_id = getattr(device, 'client_id', None)
                 if not client_id:
                     connection_data = getattr(device, 'connection', {})

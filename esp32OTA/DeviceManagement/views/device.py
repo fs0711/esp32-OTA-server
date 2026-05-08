@@ -88,3 +88,10 @@ def force_update_view(data):
 )
 def ping_view(data):
     return DeviceController.ping_controller(data=data)
+
+
+@device_bp.route("/connected", methods=["GET"])
+@decorators.is_authenticated
+def connected_devices_view():
+    """Get list of connected devices with their current status and last_seen timestamp."""
+    return DeviceController.get_connected_devices_controller(data={})

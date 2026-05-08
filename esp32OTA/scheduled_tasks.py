@@ -26,9 +26,14 @@ def register_scheduled_tasks(scheduler):
     def gateway_poll_task():
         GatewayService.poll_devices()
 
-    @scheduler.task('interval', id='gateway_heartbeat', seconds=15, misfire_grace_time=60, max_instances=1)
+    @scheduler.task('interval', id='gateway_heartbeat', minutes=2, misfire_grace_time=60, max_instances=1)
     def gateway_heartbeat_task():
-        """Send device heartbeat every 15 seconds to update online/offline status."""
+        """Send device heartbeat every 2 minutes to update online/offline status."""
+        GatewayService.send_heartbeat()
+
+    @scheduler.task('interval', id='server_heartbeat', seconds=130, misfire_grace_time=60, max_instances=1)
+    def server_heartbeat_task():
+        """Send server heartbeat every 130 seconds to report device status to API."""
         GatewayService.send_heartbeat()
 
     # # Example 3: Task that runs at a specific time every day

@@ -383,3 +383,50 @@ class DeviceController(Controller):
                 response_data=[]
             )
     
+    @classmethod
+    def get_connected_devices_controller(cls, data):
+        """
+        Returns list of connected devices with their status and last_seen information.
+        Only includes devices that have client_id and connection data.
+        Response format:
+        [
+            {
+                "device_id": "DV-2",
+                "status": "online/offline",
+                "last_seen": "2026-04-05T20:55:58+00:00"
+            },
+            ...
+        ]
+        """
+        try:
+            # Get all devices with client_id and connection data
+            devices = Device.objects(client_id__ne=None, status=constants.OBJECT_STATUS_ACTIVE).only(
+                'device_id', 'client_id', 'connection'
+            )
+            
+            connected_devices = []
+            
+            for device in devices:
+                connection = device.connection or {}
+                status = connection.get('status', 'offline')
+                last_seen = connection.get('last_seen', '')
+                
+                connected_devices.append({
+                    "device_id": str(device.device_id),
+                    "status": status,
+                    "last_seen": last_seen
+                })
+            
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_SUCCESS,
+                response_message=response_codes.MESSAGE_SUCCESS,
+                response_data=connected_devices
+            )
+            
+        except Exception as e:
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_OPERATION_FAILED,
+                response_message=f"Failed to retrieve connected devices: {str(e)}",
+                response_data=[]
+            )
+    

@@ -33,7 +33,7 @@ bind = [
     "127.0.0.1:5000"            # MQTT auth plugin (localhost only)
 ]
 
-workers = 1
+workers = 10
 timeout = 300
 accesslog = "/var/log/esp32ota/access.log"
 errorlog = "/var/log/esp32ota/error.log"
