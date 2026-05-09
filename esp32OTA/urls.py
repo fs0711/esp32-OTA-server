@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 from esp32OTA import app, config
 from esp32OTA.Services.GatewayService import GatewayService
 from esp32OTA.Services.ConfigController import ConfigController
-from esp32OTA.Services.LogCaptureService import LogCaptureService
 from esp32OTA.generic.services.utils import constants, decorators, response_utils, common_utils
 from esp32OTA.UserManagement.views.users import users_bp
 from esp32OTA.DeviceManagement.views.device import device_bp
@@ -188,29 +187,6 @@ def logs_page():
     """Display application logs page"""
     return render_template("logs.html")
 
-
-@app.route("/api/logs", methods=["GET"])
-def get_logs():
-    """API endpoint to fetch application logs"""
-    limit = request.args.get('limit', default=100, type=int)
-    offset = request.args.get('offset', default=0, type=int)
-    
-    logs = LogCaptureService.get_logs(limit=limit, offset=offset)
-    total = len(LogCaptureService.get_logs())
-    
-    return jsonify({
-        "logs": logs,
-        "total": total,
-        "limit": limit,
-        "offset": offset
-    })
-
-
-@app.route("/api/logs/clear", methods=["DELETE"])
-def clear_logs():
-    """Clear all logs"""
-    LogCaptureService.clear_logs()
-    return jsonify({"message": "Logs cleared successfully"})
 
 
 @app.route("/api/mqtt/broker-logs", methods=["GET"])

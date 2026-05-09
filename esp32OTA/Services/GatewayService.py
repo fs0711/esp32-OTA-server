@@ -141,18 +141,6 @@ class GatewayService:
                     else:
                         # Skip publishing if nothing changed
                         pass
-                    
-                    # Update local state for dashboard
-                    cls._last_data[device.device_id] = {
-                        "id": device.device_id,
-                        "c_s_id": str(api_data.get('c_s_id', device.device_id)),
-                        "payloads": {
-                            "status": api_data,
-                            "usage": cls._last_data.get(device.device_id, {}).get("payloads", {}).get("usage", {})
-                        },
-                        "timestamp": int(current_time.timestamp()),  # Store epoch timestamp for heartbeat check
-                        "last_seen": current_time.isoformat()
-                    }
                 else:
                     print(f"[{datetime.now().strftime('%H:%M:%S')}] [GATEWAY] ERR {client_id}: {response.status_code}")
                     logger.error(f"[GATEWAY] API Error for {client_id}: {response.status_code}")
@@ -162,9 +150,58 @@ class GatewayService:
                 logger.error(f"[GATEWAY] Error processing {device.device_id}: {str(e)}")
 
     @classmethod
+    def update_device_status(cls):
+        """
+        Update device online/offline status in database based on last_updated timestamp.
+        Runs before sending heartbeat.
+        """
+        try:
+            current_time = datetime.now(timezone.utc)
+            heartbeat_threshold = timedelta(minutes=2)
+            
+            # Get all devices with client_id
+            devices = Device.objects(client_id__ne=None).only(
+                'connection', 'device_id'
+            )
+            
+            for device in devices:
+                try:
+                    connection = device.connection or {}
+                    last_updated = connection.get('last_updated')
+                    
+                    if not last_updated:
+                        logger.debug(f"[STATUS_UPDATE] Device {device.device_id} has no last_updated")
+                        continue
+                    
+                    # Parse ISO format timestamp
+                    try:
+                        last_updated_dt = datetime.fromisoformat(
+                            last_updated.replace('Z', '+00:00')
+                        )
+                    except:
+                        logger.warning(f"[STATUS_UPDATE] Failed to parse last_updated for {device.device_id}: {last_updated}")
+                        continue
+                    
+                    # Calculate online status: online if last_updated is within 2 minutes
+                    time_diff = current_time - last_updated_dt
+                    is_online = time_diff <= heartbeat_threshold
+                    
+                    # Update device status in DB
+                    connection['status'] = 'online' if is_online else 'offline'
+                    device.connection = connection
+                    device.save()
+                    
+                except Exception as e:
+                    logger.warning(f"[STATUS_UPDATE] Error processing device {device.device_id}: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"[STATUS_UPDATE] Error in update_device_status: {str(e)}")
+
+    @classmethod
     def send_heartbeat(cls):
         """
-        Send device status heartbeat to charging API.
+        Send device status heartbeat to charging API using data from database.
         Runs every 2 minutes to report device online/offline status.
         Payload format:
         {
@@ -177,11 +214,9 @@ class GatewayService:
         try:
             from esp32OTA.config import config
             
-            current_time = datetime.now(timezone.utc)
-            heartbeat_threshold = timedelta(minutes=2)
             devices_payload = []
             
-            # Get all devices with client_id
+            # Get all devices with client_id and their status from DB
             devices = Device.objects(client_id__ne=None).only(
                 'client_id', 'connection', 'device_id'
             )
@@ -189,41 +224,26 @@ class GatewayService:
             for device in devices:
                 try:
                     connection = device.connection or {}
-                    last_seen = connection.get('last_seen')
+                    status = connection.get('status', 'offline')
+                    last_updated = connection.get('last_updated')
                     
-                    if not last_seen:
-                        logger.debug(f"[HEARTBEAT] Device {device.device_id} has no last_seen")
+                    if not last_updated:
+                        logger.debug(f"[HEARTBEAT] Device {device.device_id} has no last_updated")
                         continue
                     
-                    # Parse ISO format timestamp
-                    try:
-                        last_seen_dt = datetime.fromisoformat(
-                            last_seen.replace('Z', '+00:00')
-                        )
-                    except:
-                        logger.warning(f"[HEARTBEAT] Failed to parse last_seen for {device.device_id}: {last_seen}")
-                        continue
-                    
-                    # Calculate online status: online if last_seen is within 2 minutes
-                    time_diff = current_time - last_seen_dt
-                    is_online = time_diff <= heartbeat_threshold
+                    is_online = (status == 'online')
                     
                     devices_payload.append({
                         "id": str(device.client_id),
                         "online": is_online,
-                        "last_seen": last_seen
+                        "last_seen": last_updated
                     })
-                    
-                    # Update device status in DB
-                    connection['status'] = 'online' if is_online else 'offline'
-                    device.connection = connection
-                    device.save()
                     
                 except Exception as e:
                     logger.warning(f"[HEARTBEAT] Error processing device {device.device_id}: {e}")
                     continue
             
-            # Send heartbeat payload
+            # Send heartbeat payload to API
             if devices_payload:
                 payload = {"devices": devices_payload}
                 

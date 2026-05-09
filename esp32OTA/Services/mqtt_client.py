@@ -91,6 +91,17 @@ class MQTTClientService:
                         self.handle_device_usage(device_id, data)
                     except json.JSONDecodeError:
                         logger.error(f"[MQTT] Failed to decode usage payload for {device_id}")
+                
+                # Check for config request (send_config = 1)
+                if len(topic_parts) >= 3:
+                    device_id = topic_parts[2]
+                    try:
+                        data = json.loads(payload_str)
+                        if data.get("send_config") == 1:
+                            logger.info(f"[MQTT] Config request received from {device_id}")
+                            self.handle_config_request(device_id)
+                    except (json.JSONDecodeError, TypeError):
+                        pass  # Not JSON or no send_config flag
         except Exception as e:
             logger.error(f"[MQTT] Error in on_message: {str(e)}")
 
@@ -122,8 +133,7 @@ class MQTTClientService:
                 return # Silently stop if device not in DB
             else:
                 # Get the client_id (OrkoFleet's c_s_id)
-                current_time = common_utils.get_time_iso()
-                device[constants.DEVICE__CONNECTION] = {"last_seen": current_time ,
+                device[constants.DEVICE__CONNECTION] = {"last_updated": new_timestamp,
                                                         "status":device[constants.DEVICE__CONNECTION].get("status")}
                 device.save()
                 client_id = getattr(device, 'client_id', None)
@@ -240,6 +250,71 @@ class MQTTClientService:
 
         except Exception as e:
             logger.error(f"[MQTT] Error handling device usage for {device_id}: {str(e)}")
+
+    def handle_config_request(self, device_id):
+        """
+        Handles config request from device (send_config = 1).
+        Fetches device config and publishes shortened variables and QR code to config_update topic.
+        """
+        try:
+            # Fetch device from database
+            device = Device.objects(device_id=str(device_id)).first()
+            
+            if not device:
+                # Fallback - try iterating through devices
+                for d in Device.objects.only('device_id', 'variables', 'qr_code'):
+                    if str(d.device_id) == str(device_id):
+                        device = d
+                        break
+            
+            if not device:
+                logger.warning(f"[MQTT] Device {device_id} not found in database for config request")
+                return
+            
+            # Shorten variable names
+            var_mapping = {
+                "CT_CAL_HIGH": "cc_h",
+                "CT_CAL_LOW": "cc_l",
+                "CT_CAL_MID": "cc_m",
+                "CT_MAX_CURRENT": "cmc",
+                "VCAL": "vc",
+                "app": "app",
+                "app_password": "app_pwd",
+                "app_user": "app_usr",
+                "base_url": "burl",
+                "bt_mac": "bt_m",
+                "config_timeout": "cfg_to",
+                "cut_A": "cut_a",
+                "device_id": "did",
+                "ime1": "ime1",
+                "ping_api": "ping",
+                "status_api": "status",
+                "sw_timeout": "sw_to",
+                "update_data_api": "update",
+                "wifi_mac": "wifi_m",
+                "wifi_password": "wifi_pwd",
+                "wifi_ssid": "wifi_ssid"
+            }
+            
+            shortened_variables = {}
+            for key, value in device.variables.items():
+                short_key = var_mapping.get(key, key)
+                shortened_variables[short_key] = value
+            
+            # Build config update payload
+            topic = f"ZV/DEVICES/{device.device_id}/config_update"
+            payload = {
+                "t": int(datetime.now().timestamp()),
+                "variables": shortened_variables,
+                "qr_code": device.qr_code
+            }
+            
+            # Publish to MQTT
+            self.publish(topic, payload)
+            logger.info(f"[MQTT] Config sent to {device_id}")
+            
+        except Exception as e:
+            logger.error(f"[MQTT] Error handling config request for {device_id}: {str(e)}")
 
     def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties=None):
         logger.warning(f"[MQTT] Disconnected: {reason_code}")

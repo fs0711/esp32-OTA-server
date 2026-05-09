@@ -151,7 +151,7 @@ ZVOLTA/
 │   │   ├── mqtt_client.py            # MQTT client service
 │   │   ├── GatewayService.py         # Gateway business logic
 │   │   ├── ConfigController.py       # Configuration service
-│   │   └── LogCaptureService.py      # Log capture utility
+
 │   ├── scheduler.py                   # Background task scheduler
 │   ├── scheduled_tasks.py            # Scheduled jobs
 │   ├── scripts/
@@ -671,7 +671,7 @@ No logs visible in dashboard
 ```
 
 **Solutions:**
-1. Check LogCaptureService is started
+1. Check application logs are being written
 2. Verify logging level in config
 3. Check /var/log/zvolta/ permissions
 4. Restart application: `sudo systemctl restart esp32-ota`
