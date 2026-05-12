@@ -197,6 +197,11 @@ class MQTTClientService:
             response = requests.post(api_url, json=payload, headers=headers, timeout=5)
             logger.info(f"[MQTT] Forwarded {device_id} status to API. Status: {response.status_code}")
             
+            # Update device's last_updated timestamp after successful API post
+            if response.status_code == 200 and new_timestamp is not None:
+                from esp32OTA.Services.GatewayService import GatewayService
+                GatewayService.update_device_last_updated(device_id, new_timestamp)
+            
             # Restore terminal logging of response (but not database)
             try:
                 resp_data = response.json()

@@ -22,19 +22,19 @@ def register_scheduled_tasks(scheduler):
     #     print(f"[{datetime.now()}] Sending notification emails...")
     #     NotificationController.send_notifications()
         
-    @scheduler.task('interval', id='gateway_device_polling', seconds=1, misfire_grace_time=120, max_instances=5)
-    def gateway_poll_task():
-        GatewayService.poll_devices()
+    # @scheduler.task('interval', id='gateway_device_polling', seconds=1, misfire_grace_time=120, max_instances=5)
+    # def gateway_poll_task():
+    #     GatewayService.poll_devices()
 
-    @scheduler.task('interval', id='gateway_heartbeat', minutes=2, misfire_grace_time=60, max_instances=1)
-    def gateway_heartbeat_task():
-        """Update device status every 2 minutes based on last_updated."""
-        GatewayService.update_device_status()
-
-    @scheduler.task('interval', id='server_heartbeat', seconds=130, misfire_grace_time=60, max_instances=1)
+    @scheduler.task('interval', id='server_heartbeat', seconds=120, misfire_grace_time=60, max_instances=1)
     def server_heartbeat_task():
-        """Send heartbeat every 130 seconds to report device status to API."""
+        """Send heartbeat every 120 seconds to report device status to API."""
         GatewayService.send_heartbeat()
+
+    @scheduler.task('interval', id='check_device_status', seconds=110, misfire_grace_time=60, max_instances=1)
+    def check_device_status_task():
+        """Check and update device online/offline status every 110 seconds based on last_updated timestamp."""
+        GatewayService.check_and_update_device_status()
 
     # # Example 3: Task that runs at a specific time every day
     # @scheduler.task('cron', id='daily_report', hour=0, minute=0, misfire_grace_time=900)

@@ -47,6 +47,116 @@ class GatewayService:
             return [f"Error reading logs: {str(e)}"]
 
     @classmethod
+    def update_device_last_updated(cls, device_id, timestamp):
+        """
+        Updates the device's last_updated field in the connection object.
+        Called after successfully posting device status to OrkoFleet API.
+        """
+        try:
+            # Query device by device_id
+            device = Device.objects(device_id=str(device_id)).first()
+            
+            # Fallback: iterate through devices if direct query fails
+            if not device:
+                for d in Device.objects.only('device_id', 'connection'):
+                    if str(d.device_id) == str(device_id):
+                        device = d
+                        break
+            
+            if not device:
+                logger.warning(f"[GATEWAY] Device {device_id} not found for updating last_updated")
+                return False
+            
+            # Update connection.last_updated with the timestamp
+            if not device.connection:
+                device.connection = {}
+            
+            device.connection['last_updated'] = timestamp
+            device.save()
+            
+            logger.info(f"[GATEWAY] Updated {device_id} last_updated to {timestamp}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"[GATEWAY] Error updating last_updated for {device_id}: {str(e)}")
+            return False
+
+    @classmethod
+    def check_and_update_device_status(cls):
+        """
+        Checks all devices' last_updated timestamps and updates their status to online/offline.
+        If last_updated is within 2 minutes: status = online
+        If last_updated is more than 2 minutes ago: status = offline
+        """
+        try:
+            from datetime import datetime, timezone
+            
+            # Get current time
+            current_time = datetime.now(timezone.utc)
+            threshold_seconds = 120  # 2 minutes
+            
+            # Get all devices from database
+            devices = Device.objects()
+            
+            if not devices:
+                return
+            
+            updates_count = 0
+            
+            for device in devices:
+                try:
+                    # Get last_updated from connection object
+                    connection = getattr(device, 'connection', {})
+                    if not connection:
+                        continue
+                    
+                    last_updated = connection.get('last_updated')
+                    if not last_updated:
+                        continue
+                    
+                    # Parse last_updated timestamp
+                    # Handle both string and datetime formats
+                    if isinstance(last_updated, str):
+                        # Try to parse ISO format timestamp
+                        try:
+                            last_updated_dt = datetime.fromisoformat(last_updated.replace('Z', '+00:00'))
+                        except:
+                            # Try other formats
+                            last_updated_dt = datetime.fromisoformat(last_updated)
+                    else:
+                        last_updated_dt = last_updated
+                    
+                    # Make sure both are timezone-aware for comparison
+                    if last_updated_dt.tzinfo is None:
+                        last_updated_dt = last_updated_dt.replace(tzinfo=timezone.utc)
+                    
+                    # Calculate time difference
+                    time_diff = (current_time - last_updated_dt).total_seconds()
+                    
+                    # Determine status
+                    new_status = "online" if time_diff <= threshold_seconds else "offline"
+                    
+                    # Get current status
+                    current_status = connection.get('status')
+                    
+                    # Update if status changed
+                    if current_status != new_status:
+                        device.connection['status'] = new_status
+                        device.save()
+                        updates_count += 1
+                        logger.info(f"[GATEWAY] Device {device.device_id} status updated to {new_status} (last_updated: {time_diff}s ago)")
+                    
+                except Exception as e:
+                    logger.error(f"[GATEWAY] Error checking status for device {device.device_id}: {str(e)}")
+                    continue
+            
+            if updates_count > 0:
+                logger.info(f"[GATEWAY] Device status check completed. Updated {updates_count} devices.")
+            
+        except Exception as e:
+            logger.error(f"[GATEWAY] Error in check_and_update_device_status: {str(e)}")
+
+    @classmethod
     def poll_devices(cls):
         """
         Loads all active devices, fetches status from external API using client_id,
@@ -149,54 +259,6 @@ class GatewayService:
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] [GATEWAY] ERR {device.device_id}: {str(e)[:50]}")
                 logger.error(f"[GATEWAY] Error processing {device.device_id}: {str(e)}")
 
-    @classmethod
-    def update_device_status(cls):
-        """
-        Update device online/offline status in database based on last_updated timestamp.
-        Runs before sending heartbeat.
-        """
-        try:
-            current_time = datetime.now(timezone.utc)
-            heartbeat_threshold = timedelta(minutes=2)
-            
-            # Get all devices with client_id
-            devices = Device.objects(client_id__ne=None).only(
-                'connection', 'device_id'
-            )
-            
-            for device in devices:
-                try:
-                    connection = device.connection or {}
-                    last_updated = connection.get('last_updated')
-                    
-                    if not last_updated:
-                        logger.debug(f"[STATUS_UPDATE] Device {device.device_id} has no last_updated")
-                        continue
-                    
-                    # Parse ISO format timestamp
-                    try:
-                        last_updated_dt = datetime.fromisoformat(
-                            last_updated.replace('Z', '+00:00')
-                        )
-                    except:
-                        logger.warning(f"[STATUS_UPDATE] Failed to parse last_updated for {device.device_id}: {last_updated}")
-                        continue
-                    
-                    # Calculate online status: online if last_updated is within 2 minutes
-                    time_diff = current_time - last_updated_dt
-                    is_online = time_diff <= heartbeat_threshold
-                    
-                    # Update device status in DB
-                    connection['status'] = 'online' if is_online else 'offline'
-                    device.connection = connection
-                    device.save()
-                    
-                except Exception as e:
-                    logger.warning(f"[STATUS_UPDATE] Error processing device {device.device_id}: {e}")
-                    continue
-                    
-        except Exception as e:
-            logger.error(f"[STATUS_UPDATE] Error in update_device_status: {str(e)}")
 
     @classmethod
     def send_heartbeat(cls):

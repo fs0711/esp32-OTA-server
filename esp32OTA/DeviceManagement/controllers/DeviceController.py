@@ -362,7 +362,7 @@ class DeviceController(Controller):
     def ping_controller(cls, data):
         """
         Sends a ping command to a device identified by client_id (c_s_id).
-        The payload is sent exactly as provided via MQTT.
+        Maps incoming socket status fields to shortened names and publishes via MQTT.
         
         Expected data format:
         {
@@ -373,6 +373,18 @@ class DeviceController(Controller):
                     "session_id": null,
                     "box_open_request": false,
                     "credit": 0.0
+                }
+            ]
+        }
+        
+        Published format:
+        {
+            "t": 1778452927,
+            "s": [
+                {
+                    "st": 0,
+                    "sid": null,
+                    "cr": 0.0
                 }
             ]
         }
@@ -396,11 +408,29 @@ class DeviceController(Controller):
                 response_data=[]
             )
         
-        # Prepare the payload (the entire data dict) and post to MQTT
+        # Map incoming socket status fields to shortened names
+        incoming_s = data.get("s", [])
+        mapped_s = []
+        
+        for item in incoming_s:
+            mapped_item = {
+                "st": item.get("status"),      # status -> st
+                "sid": item.get("session_id"),  # session_id -> sid
+                "cr": item.get("credit")        # credit -> cr
+            }
+            mapped_s.append(mapped_item)
+        
+        # Create MQTT payload with current timestamp
+        mqtt_payload = {
+            "t": int(datetime.now().timestamp()),
+            "s": mapped_s
+        }
+        
+        # Publish to MQTT topic
         topic = f"ZV/DEVICES/{device.device_id}/ping"
         
         try:
-            mqtt_service.publish(topic, data)
+            mqtt_service.publish(topic, mqtt_payload)
             
             return response_utils.get_response_object(
                 response_code=response_codes.CODE_SUCCESS,
@@ -409,7 +439,7 @@ class DeviceController(Controller):
                     "device_id": str(device.device_id),
                     "client_id": c_s_id,
                     "topic": topic,
-                    "payload": data
+                    "payload": mqtt_payload
                 }
             )
         except Exception as e:
