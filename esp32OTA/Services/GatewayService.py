@@ -157,6 +157,48 @@ class GatewayService:
             logger.error(f"[GATEWAY] Error in check_and_update_device_status: {str(e)}")
 
     @classmethod
+    def refresh_all_devices_online(cls):
+        """
+        Refreshes all devices by updating their last_updated to current time and status to online.
+        Called every 90 seconds to keep device connection status current.
+        """
+        try:
+            from datetime import datetime, timezone
+            
+            # Get current time
+            current_time = datetime.now(timezone.utc)
+            
+            # Get all devices from database
+            devices = Device.objects()
+            
+            if not devices:
+                return
+            
+            updates_count = 0
+            
+            for device in devices:
+                try:
+                    # Initialize or update connection object
+                    if not device.connection:
+                        device.connection = {}
+                    
+                    # Update last_updated to current time
+                    device.connection['last_updated'] = current_time
+                    # Set status to online
+                    device.connection['status'] = 'online'
+                    device.save()
+                    updates_count += 1
+                    
+                except Exception as e:
+                    logger.error(f"[GATEWAY] Error refreshing device {device.device_id}: {str(e)}")
+                    continue
+            
+            logger.info(f"[GATEWAY] Refreshed {updates_count} devices - set all to online with current timestamp")
+            
+        except Exception as e:
+            logger.error(f"[GATEWAY] Error in refresh_all_devices_online: {str(e)}")
+
+    @classmethod
     def poll_devices(cls):
         """
         Loads all active devices, fetches status from external API using client_id,
