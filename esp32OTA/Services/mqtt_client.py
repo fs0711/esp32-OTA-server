@@ -122,27 +122,20 @@ class MQTTClientService:
                 # Handle send_config topic
                 if len(topic_parts) >= 3 and "send_config" in topic:
                     device_id = topic_parts[2]
-                    current_time = datetime.now().timestamp()
-                    # Allow config request if not requested in last 1 second (prevent spam)
-                    last_request = self.last_config_request_time.get(device_id, 0)
-                    if current_time - last_request >= 1.0:
-                        self.last_config_request_time[device_id] = current_time
+                    try:
+                        # Try to parse as JSON, but also handle plain "1" or "1\n"
                         try:
-                            # Try to parse as JSON, but also handle plain "1" or "1\n"
-                            try:
-                                data = json.loads(payload_str)
-                                if data == 1 or data.get("send_config") == 1:
-                                    logger.info(f"[MQTT] Config request received from {device_id}")
-                                    self.handle_config_request(device_id)
-                            except (json.JSONDecodeError, TypeError):
-                                # Handle as plain text/number
-                                if payload_str.strip() == "1":
-                                    logger.info(f"[MQTT] Config request received from {device_id}")
-                                    self.handle_config_request(device_id)
-                        except Exception as e:
-                            logger.error(f"[MQTT] Error handling send_config from {device_id}: {str(e)}")
-                    else:
-                        logger.debug(f"[MQTT] Config request from {device_id} ignored (too soon after last request)")
+                            data = json.loads(payload_str)
+                            if data == 1 or data.get("send_config") == 1:
+                                logger.info(f"[MQTT] Config request received from {device_id}")
+                                self.handle_config_request(device_id)
+                        except (json.JSONDecodeError, TypeError):
+                            # Handle as plain text/number
+                            if payload_str.strip() == "1":
+                                logger.info(f"[MQTT] Config request received from {device_id}")
+                                self.handle_config_request(device_id)
+                    except Exception as e:
+                        logger.error(f"[MQTT] Error handling send_config from {device_id}: {str(e)}")
         except Exception as e:
             logger.error(f"[MQTT] Error in on_message: {str(e)}")
 
