@@ -311,41 +311,11 @@ class MQTTClientService:
             
             logger.info(f"[MQTT] Device found: {device_id}, has variables: {device.variables is not None}")
             
-            # Shorten variable names
-            var_mapping = {
-                "CT_CAL_HIGH": "cc_h",
-                "CT_CAL_LOW": "cc_l",
-                "CT_CAL_MID": "cc_m",
-                "CT_MAX_CURRENT": "cmc",
-                "VCAL": "vc",
-                "app": "app",
-                "app_password": "app_pwd",
-                "app_user": "app_usr",
-                "base_url": "burl",
-                "bt_mac": "bt_m",
-                "config_timeout": "cfg_to",
-                "cut_A": "cut_a",
-                "device_id": "did",
-                "ime1": "ime1",
-                "ping_api": "ping",
-                "status_api": "status",
-                "sw_timeout": "sw_to",
-                "update_data_api": "update",
-                "wifi_mac": "wifi_m",
-                "wifi_password": "wifi_pwd",
-                "wifi_ssid": "wifi_ssid"
-            }
-            
-            shortened_variables = {}
-            for key, value in device.variables.items():
-                short_key = var_mapping.get(key, key)
-                shortened_variables[short_key] = value
-            
             # Build config update payload
             topic = f"ZV/DEVICES/{device.device_id}/configupdate"
             payload = {
                 "t": int(datetime.now().timestamp()),
-                "variables": shortened_variables,
+                "variables": dict(device.variables),
                 "qr_code": device.qr_code
             }
             
