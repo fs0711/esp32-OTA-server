@@ -38,10 +38,12 @@ class MQTTClientService:
         self.last_timestamps = {}  # Track last timestamp per device
         self.last_usage_timestamps = {} # Track last usage timestamp per device
         self.last_config_request_time = {}  # Track last config request time per device
+        self.connected = False  # Track connection state
         self._initialized = True
 
     def on_connect(self, client, userdata, flags, reason_code, properties=None):
         if reason_code == 0:
+            self.connected = True
             logger.info("[MQTT] Connected successfully")
             # Subscribe to stats and device topics
             client.subscribe("$SYS/broker/#", qos=1)
@@ -49,7 +51,9 @@ class MQTTClientService:
             client.subscribe("ZV/DEVICES/+/usage/#", qos=1)
             client.subscribe("ZV/DEVICES/+/command", qos=1)
             client.subscribe("ZV/DEVICES/+/send_config", qos=1)
+            client.subscribe("ZV/DEVICES/+/configuration", qos=1)
         else:
+            self.connected = False
             logger.error(f"[MQTT] Connection failed with code {reason_code}")
 
     def on_message(self, client, userdata, message):
@@ -61,6 +65,7 @@ class MQTTClientService:
                 stat_key = topic.replace("$SYS/broker/", "")
                 self.broker_stats[stat_key] = payload_str
             elif topic.startswith("ZV/DEVICES/"):
+                logger.info(f"[MQTT] <<< RECEIVED | topic: '{topic}' | payload: '{payload_str}'")
                 # Handle incoming status from devices
                 # Expected topic format: ZV/DEVICES/DV-2/status
                 topic_parts = topic.split('/')
@@ -95,12 +100,12 @@ class MQTTClientService:
                     except json.JSONDecodeError:
                         logger.error(f"[MQTT] Failed to decode usage payload for {device_id}")
                 
-                # Check for config request (send_config = 1)
+                # Check for config request (send_config = 1) in JSON payload
                 if len(topic_parts) >= 3:
                     device_id = topic_parts[2]
                     try:
                         data = json.loads(payload_str)
-                        if data.get("send_config") == 1:
+                        if isinstance(data, dict) and data.get("send_config") == 1:
                             logger.info(f"[MQTT] Config request received from {device_id}")
                             self.handle_config_request(device_id)
                     except (json.JSONDecodeError, TypeError):
@@ -119,23 +124,12 @@ class MQTTClientService:
                     else:
                         logger.debug(f"[MQTT] Command from {device_id} ignored (too soon after last request)")
                 
-                # Handle send_config topic
-                if len(topic_parts) >= 3 and "send_config" in topic:
+                
+                # Handle configuration topic
+                if len(topic_parts) >= 3 and topic_parts[3] == "configuration":
                     device_id = topic_parts[2]
-                    try:
-                        # Try to parse as JSON, but also handle plain "1" or "1\n"
-                        try:
-                            data = json.loads(payload_str)
-                            if data == 1 or data.get("send_config") == 1:
-                                logger.info(f"[MQTT] Config request received from {device_id}")
-                                self.handle_config_request(device_id)
-                        except (json.JSONDecodeError, TypeError):
-                            # Handle as plain text/number
-                            if payload_str.strip() == "1":
-                                logger.info(f"[MQTT] Config request received from {device_id}")
-                                self.handle_config_request(device_id)
-                    except Exception as e:
-                        logger.error(f"[MQTT] Error handling send_config from {device_id}: {str(e)}")
+                    logger.info(f"[MQTT] Configuration request received from {device_id}, payload: {payload_str}")
+                    self.handle_config_request(device_id)
         except Exception as e:
             logger.error(f"[MQTT] Error in on_message: {str(e)}")
 
@@ -296,19 +290,26 @@ class MQTTClientService:
         Fetches device config and publishes shortened variables and QR code to config_update topic.
         """
         try:
+            logger.info(f"[MQTT] handle_config_request called for device: {device_id}")
+            
             # Fetch device from database
             device = Device.objects(device_id=str(device_id)).first()
+            logger.info(f"[MQTT] Database query attempt 1 result: {device is not None}")
             
             if not device:
                 # Fallback - try iterating through devices
+                logger.info(f"[MQTT] Attempting fallback device lookup for {device_id}")
                 for d in Device.objects.only('device_id', 'variables', 'qr_code'):
                     if str(d.device_id) == str(device_id):
                         device = d
+                        logger.info(f"[MQTT] Device found via fallback lookup")
                         break
             
             if not device:
                 logger.warning(f"[MQTT] Device {device_id} not found in database for config request")
                 return
+            
+            logger.info(f"[MQTT] Device found: {device_id}, has variables: {device.variables is not None}")
             
             # Shorten variable names
             var_mapping = {
@@ -348,19 +349,36 @@ class MQTTClientService:
                 "qr_code": device.qr_code
             }
             
+            logger.info(f"[MQTT] Publishing config to {topic}")
             # Publish to MQTT
             self.publish(topic, payload)
             logger.info(f"[MQTT] Config sent to {device_id}")
             
         except Exception as e:
-            logger.error(f"[MQTT] Error handling config request for {device_id}: {str(e)}")
+            logger.error(f"[MQTT] Error handling config request for {device_id}: {str(e)}", exc_info=True)
 
     def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties=None):
+        self.connected = False
         logger.warning(f"[MQTT] Disconnected: {reason_code}")
+        # Attempt to reconnect after 5 seconds
+        logger.info("[MQTT] Attempting to reconnect in 5 seconds...")
+        threading.Timer(5.0, self.reconnect).start()
+
+    def reconnect(self):
+        """Attempt to reconnect to MQTT broker"""
+        try:
+            if not self.connected:
+                logger.info("[MQTT] Reconnecting to broker...")
+                self.client.reconnect()
+        except Exception as e:
+            logger.error(f"[MQTT] Reconnection failed: {str(e)}")
+            # Try again in 5 seconds
+            threading.Timer(5.0, self.reconnect).start()
 
     def start(self):
         try:
-            self.client.connect(self.broker_host, self.broker_port, 60)
+            # Set keep-alive to 60 seconds to detect disconnections faster
+            self.client.connect(self.broker_host, self.broker_port, keepalive=60)
             self.client.loop_start()
             logger.info(f"[MQTT] Started loop for {self.broker_host}")
         except Exception as e:
