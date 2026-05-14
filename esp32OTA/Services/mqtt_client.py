@@ -342,7 +342,7 @@ class MQTTClientService:
                 shortened_variables[short_key] = value
             
             # Build config update payload
-            topic = f"ZV/DEVICES/{device.device_id}/config_update"
+            topic = f"ZV/DEVICES/{device.device_id}/configupdate"
             payload = {
                 "t": int(datetime.now().timestamp()),
                 "variables": shortened_variables,
