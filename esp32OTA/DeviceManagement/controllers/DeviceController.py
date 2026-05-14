@@ -275,7 +275,7 @@ class DeviceController(Controller):
                     ))
 
             # 2. Post a payload on mqtt against device
-            topic = f"ZV/DEVICES/{obj.device_id}/config_update"
+            topic = f"ZV/DEVICES/{obj.device_id}/configupdate"
             
             # Shorten variable names
             var_mapping = {

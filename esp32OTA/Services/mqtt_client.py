@@ -287,7 +287,7 @@ class MQTTClientService:
     def handle_config_request(self, device_id):
         """
         Handles config request from device (send_config = 1).
-        Fetches device config and publishes shortened variables and QR code to config_update topic.
+        Fetches device config and publishes shortened variables and QR code to configupdate topic.
         """
         try:
             logger.info(f"[MQTT] handle_config_request called for device: {device_id}")
