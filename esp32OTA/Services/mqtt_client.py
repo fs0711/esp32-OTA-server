@@ -37,6 +37,7 @@ class MQTTClientService:
         self.device_data = {}
         self.last_timestamps = {}  # Track last timestamp per device
         self.last_usage_timestamps = {} # Track last usage timestamp per device
+        self.last_config_request_time = {}  # Track last config request time per device
         self._initialized = True
 
     def on_connect(self, client, userdata, flags, reason_code, properties=None):
@@ -108,26 +109,40 @@ class MQTTClientService:
                 # Handle command topic
                 if len(topic_parts) >= 3 and "command" in topic:
                     device_id = topic_parts[2]
-                    logger.info(f"[MQTT] Command received from {device_id}: {payload_str}")
-                    self.handle_config_request(device_id)
+                    current_time = datetime.now().timestamp()
+                    # Allow command if not processed in last 1 second (prevent spam)
+                    last_request = self.last_config_request_time.get(device_id, 0)
+                    if current_time - last_request >= 1.0:
+                        self.last_config_request_time[device_id] = current_time
+                        logger.info(f"[MQTT] Command received from {device_id}: {payload_str}")
+                        self.handle_config_request(device_id)
+                    else:
+                        logger.debug(f"[MQTT] Command from {device_id} ignored (too soon after last request)")
                 
                 # Handle send_config topic
                 if len(topic_parts) >= 3 and "send_config" in topic:
                     device_id = topic_parts[2]
-                    try:
-                        # Try to parse as JSON, but also handle plain "1" or "1\n"
+                    current_time = datetime.now().timestamp()
+                    # Allow config request if not requested in last 1 second (prevent spam)
+                    last_request = self.last_config_request_time.get(device_id, 0)
+                    if current_time - last_request >= 1.0:
+                        self.last_config_request_time[device_id] = current_time
                         try:
-                            data = json.loads(payload_str)
-                            if data == 1 or data.get("send_config") == 1:
-                                logger.info(f"[MQTT] Config request received from {device_id}")
-                                self.handle_config_request(device_id)
-                        except (json.JSONDecodeError, TypeError):
-                            # Handle as plain text/number
-                            if payload_str.strip() == "1":
-                                logger.info(f"[MQTT] Config request received from {device_id}")
-                                self.handle_config_request(device_id)
-                    except Exception as e:
-                        logger.error(f"[MQTT] Error handling send_config from {device_id}: {str(e)}")
+                            # Try to parse as JSON, but also handle plain "1" or "1\n"
+                            try:
+                                data = json.loads(payload_str)
+                                if data == 1 or data.get("send_config") == 1:
+                                    logger.info(f"[MQTT] Config request received from {device_id}")
+                                    self.handle_config_request(device_id)
+                            except (json.JSONDecodeError, TypeError):
+                                # Handle as plain text/number
+                                if payload_str.strip() == "1":
+                                    logger.info(f"[MQTT] Config request received from {device_id}")
+                                    self.handle_config_request(device_id)
+                        except Exception as e:
+                            logger.error(f"[MQTT] Error handling send_config from {device_id}: {str(e)}")
+                    else:
+                        logger.debug(f"[MQTT] Config request from {device_id} ignored (too soon after last request)")
         except Exception as e:
             logger.error(f"[MQTT] Error in on_message: {str(e)}")
 
