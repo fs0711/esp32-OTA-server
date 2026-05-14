@@ -135,3 +135,31 @@ The server sends commands and update notifications to devices on these topics:
 ## 5. Security & Consistency
 - **QoS**: Most messages use **QoS 1** (At Least Once) to ensure critical commands like firmware updates reach the device.
 - **De-duplication**: The server implements a timestamp-based cache to ignore repeated messages from the device, preventing excessive API calls.
+
+status
+  {
+    "t": 123456789, 
+    "s": [
+      {
+        "id": 1, 
+        "st": 1, 
+        "sg": "w", 
+        "e": ["E2"]
+      }
+    ], 
+    "e": []
+  }
+
+usage
+    {
+    "t": 123456789,
+    "d": {
+      "s": 1,
+      "se": "sess_123",
+      "co": 0,
+      "cu": 5.2,
+      "v": 230,
+      "d": 3600,
+      "is": 1
+    }
+  }
