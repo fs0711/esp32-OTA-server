@@ -46,6 +46,8 @@ class MQTTClientService:
             client.subscribe("$SYS/broker/#", qos=1)
             client.subscribe("ZV/DEVICES/+/status/#", qos=1)
             client.subscribe("ZV/DEVICES/+/usage/#", qos=1)
+            client.subscribe("ZV/DEVICES/+/command", qos=1)
+            client.subscribe("ZV/DEVICES/+/send_config", qos=1)
         else:
             logger.error(f"[MQTT] Connection failed with code {reason_code}")
 
@@ -102,6 +104,30 @@ class MQTTClientService:
                             self.handle_config_request(device_id)
                     except (json.JSONDecodeError, TypeError):
                         pass  # Not JSON or no send_config flag
+                
+                # Handle command topic
+                if len(topic_parts) >= 3 and "command" in topic:
+                    device_id = topic_parts[2]
+                    logger.info(f"[MQTT] Command received from {device_id}: {payload_str}")
+                    self.handle_config_request(device_id)
+                
+                # Handle send_config topic
+                if len(topic_parts) >= 3 and "send_config" in topic:
+                    device_id = topic_parts[2]
+                    try:
+                        # Try to parse as JSON, but also handle plain "1" or "1\n"
+                        try:
+                            data = json.loads(payload_str)
+                            if data == 1 or data.get("send_config") == 1:
+                                logger.info(f"[MQTT] Config request received from {device_id}")
+                                self.handle_config_request(device_id)
+                        except (json.JSONDecodeError, TypeError):
+                            # Handle as plain text/number
+                            if payload_str.strip() == "1":
+                                logger.info(f"[MQTT] Config request received from {device_id}")
+                                self.handle_config_request(device_id)
+                    except Exception as e:
+                        logger.error(f"[MQTT] Error handling send_config from {device_id}: {str(e)}")
         except Exception as e:
             logger.error(f"[MQTT] Error in on_message: {str(e)}")
 
