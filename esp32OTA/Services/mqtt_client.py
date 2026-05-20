@@ -52,6 +52,7 @@ class MQTTClientService:
             client.subscribe("ZV/DEVICES/+/command", qos=1)
             client.subscribe("ZV/DEVICES/+/send_config", qos=1)
             client.subscribe("ZV/DEVICES/+/configuration", qos=1)
+            client.subscribe("ZV/DEVICES/+/setconfig", qos=1)
         else:
             self.connected = False
             logger.error(f"[MQTT] Connection failed with code {reason_code}")
@@ -130,6 +131,16 @@ class MQTTClientService:
                     device_id = topic_parts[2]
                     logger.info(f"[MQTT] Configuration request received from {device_id}, payload: {payload_str}")
                     self.handle_config_request(device_id)
+
+                # Handle setconfig topic
+                if len(topic_parts) >= 4 and topic_parts[3] == "setconfig":
+                    device_id = topic_parts[2]
+                    try:
+                        data = json.loads(payload_str)
+                        logger.info(f"[MQTT] setconfig received from {device_id}: {payload_str}")
+                        self.handle_setconfig(device_id, data)
+                    except json.JSONDecodeError:
+                        logger.error(f"[MQTT] Failed to decode setconfig payload for {device_id}")
         except Exception as e:
             logger.error(f"[MQTT] Error in on_message: {str(e)}")
 
@@ -326,6 +337,25 @@ class MQTTClientService:
             
         except Exception as e:
             logger.error(f"[MQTT] Error handling config request for {device_id}: {str(e)}", exc_info=True)
+
+    def handle_setconfig(self, device_id, data):
+        """
+        Handles setconfig payload from a device.
+        Passes all data to DeviceController.config_controller with method POST.
+        Expected payload: {"hw_version": "0.1", "variables": {...}}
+        """
+        try:
+            from esp32OTA import app
+            from esp32OTA.DeviceManagement.controllers.DeviceController import DeviceController
+            with app.app_context():
+                result = DeviceController.config_controller(
+                    data=data,
+                    method="POST",
+                    device_id_str=str(device_id)
+                )
+                logger.info(f"[MQTT] setconfig result for {device_id}: {result}")
+        except Exception as e:
+            logger.error(f"[MQTT] Error handling setconfig for {device_id}: {str(e)}", exc_info=True)
 
     def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties=None):
         self.connected = False
