@@ -188,14 +188,8 @@ class DeviceController(Controller):
         return device_obj
     
     @classmethod
-    def config_controller(cls, data, method, device_id_str=None):
-        if device_id_str is not None:
-            device = cls.db_read_single_record(
-                read_filter={constants.DEVICE__ID: device_id_str,
-                             constants.STATUS: constants.OBJECT_STATUS_ACTIVE}
-            )
-        else:
-            device = __global__.get_current_device()
+    def config_controller(cls, data, method):
+        device = __global__.get_current_device()
         if device is not None:
             if method == "GET":
                 obj = cls.db_read_single_record(

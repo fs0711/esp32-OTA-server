@@ -341,19 +341,38 @@ class MQTTClientService:
     def handle_setconfig(self, device_id, data):
         """
         Handles setconfig payload from a device.
-        Passes all data to DeviceController.config_controller with method POST.
-        Expected payload: {"hw_version": "0.1", "variables": {...}}
+        Updates hw_version and fully replaces variables on the matching device.
+        Expected payload: {"hw_version": "0.4", "variables": {...}}
         """
         try:
-            from esp32OTA import app
-            from esp32OTA.DeviceManagement.controllers.DeviceController import DeviceController
-            with app.app_context():
-                result = DeviceController.config_controller(
-                    data=data,
-                    method="POST",
-                    device_id_str=str(device_id)
-                )
-                logger.info(f"[MQTT] setconfig result for {device_id}: {result}")
+            # Primary lookup
+            device = Device.objects(device_id=str(device_id)).first()
+
+            # Fallback: SequenceField stores raw int in MongoDB; decorated "DV-X" only
+            # matches on the Python side, so iterate and compare like the controller does
+            if not device:
+                for d in Device.objects.all():
+                    if str(d.device_id) == str(device_id):
+                        device = d
+                        break
+
+            if not device:
+                logger.warning(f"[MQTT] Device {device_id} not found for setconfig")
+                return
+
+            # Build update using MongoDB ObjectId (same as db_update_single_record in DeviceController)
+            update_kwargs = {}
+            if "hw_version" in data:
+                update_kwargs["set__hw_version"] = data["hw_version"]
+            if "variables" in data:
+                update_kwargs["set__variables"] = data["variables"]
+
+            if not update_kwargs:
+                logger.warning(f"[MQTT] setconfig for {device_id}: no hw_version or variables in payload")
+                return
+
+            Device.objects(id=device.id).update_one(**update_kwargs)
+            logger.info(f"[MQTT] setconfig applied for {device_id}: {update_kwargs}")
         except Exception as e:
             logger.error(f"[MQTT] Error handling setconfig for {device_id}: {str(e)}", exc_info=True)
 
