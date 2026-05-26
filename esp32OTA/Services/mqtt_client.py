@@ -300,12 +300,30 @@ class MQTTClientService:
 
                     logger.info(f"[MQTT] Auto-completing stale usage for {device_id} (elapsed: {elapsed:.0f}s): {json.dumps(completion_payload)}")
 
+                    mqtt_log = {
+                        "event": "auto_completion",
+                        "request": {
+                            "url": api_url,
+                            "payload": completion_payload
+                        }
+                    }
+
                     try:
                         response = requests.post(api_url, json=completion_payload, headers=headers, timeout=5)
                         logger.info(f"[MQTT] Auto-completion response for {device_id}: {response.status_code}")
+                        try:
+                            resp_body = response.json()
+                        except Exception:
+                            resp_body = response.text
+                        mqtt_log["response"] = {
+                            "status_code": response.status_code,
+                            "body": resp_body
+                        }
                     except Exception as post_err:
                         logger.error(f"[MQTT] Auto-completion POST failed for {device_id}: {str(post_err)}")
+                        mqtt_log["response"] = {"error": str(post_err)}
 
+                    self.publish(f"ZV/DEVICES/{device_id}/auto_completion", mqtt_log)
                     del self.last_incomplete_usage[device_id]
 
         except Exception as e:
