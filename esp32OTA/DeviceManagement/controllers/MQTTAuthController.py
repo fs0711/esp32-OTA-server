@@ -8,6 +8,7 @@ import base64
 # Local imports
 from esp32OTA.generic.controllers import Controller
 from esp32OTA.DeviceManagement.models.Device import Device
+from esp32OTA.UserManagement.models.User import User
 from esp32OTA.generic.services.utils import constants, response_codes, response_utils, common_utils
 from esp32OTA.config import config
 
@@ -32,7 +33,38 @@ class MQTTAuthController(Controller):
                 response_message="Username and password are required",
                 response_data=[]
             )
-        
+
+        # If username contains '@', treat as a user login (email + password)
+        if '@' in str(username):
+            user_obj = User.objects(
+                email_address=username,
+                status=constants.OBJECT_STATUS_ACTIVE
+            ).first()
+
+            if not user_obj:
+                return response_utils.get_response_object(
+                    response_code=response_codes.CODE_AUTHENTICATION_FAILED,
+                    response_message="Invalid user credentials",
+                    response_data=[]
+                )
+
+            if not user_obj.verify_password(password=password):
+                return response_utils.get_response_object(
+                    response_code=response_codes.CODE_AUTHENTICATION_FAILED,
+                    response_message="Invalid user credentials",
+                    response_data=[]
+                )
+
+            return response_utils.get_response_object(
+                response_code=response_codes.CODE_SUCCESS,
+                response_message="Authentication successful",
+                response_data={
+                    constants.USER__EMAIL_ADDRESS: user_obj[constants.USER__EMAIL_ADDRESS],
+                    constants.USER__NAME: user_obj[constants.USER__NAME],
+                    "authenticated": True
+                }
+            )
+
         # Find device by device_id
         device_numeric_id = int(username.split('-')[1]) if '-' in str(username) else username
         device_obj = cls.db_read_single_record(

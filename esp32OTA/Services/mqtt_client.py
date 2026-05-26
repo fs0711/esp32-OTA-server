@@ -38,6 +38,7 @@ class MQTTClientService:
         self.last_timestamps = {}  # Track last timestamp per device
         self.last_usage_timestamps = {} # Track last usage timestamp per device
         self.last_config_request_time = {}  # Track last config request time per device
+        self.last_incomplete_usage = {}  # Track last usage payload per device for stale-completion watchdog
         self.connected = False  # Track connection state
         self._initialized = True
 
@@ -112,20 +113,6 @@ class MQTTClientService:
                     except (json.JSONDecodeError, TypeError):
                         pass  # Not JSON or no send_config flag
                 
-                # Handle command topic
-                if len(topic_parts) >= 3 and "command" in topic:
-                    device_id = topic_parts[2]
-                    current_time = datetime.now().timestamp()
-                    # Allow command if not processed in last 1 second (prevent spam)
-                    last_request = self.last_config_request_time.get(device_id, 0)
-                    if current_time - last_request >= 1.0:
-                        self.last_config_request_time[device_id] = current_time
-                        logger.info(f"[MQTT] Command received from {device_id}: {payload_str}")
-                        self.handle_config_request(device_id)
-                    else:
-                        logger.debug(f"[MQTT] Command from {device_id} ignored (too soon after last request)")
-                
-                
                 # Handle configuration topic
                 if len(topic_parts) >= 3 and topic_parts[3] == "configuration":
                     device_id = topic_parts[2]
@@ -147,40 +134,33 @@ class MQTTClientService:
     def handle_device_status(self, device_id, raw_data):
         """
         Processes incoming device status, finds client_id (c_s_id),
-        checks for duplicate timestamps, and forwards to the external status API.
+        and forwards to the external status API.
         """
         try:
-            # 0. Deduplicate by timestamp (t)
-            new_timestamp = raw_data.get("t") or raw_data.get("timestamp")
-            if new_timestamp is not None:
-                # Update local cache (Already checked uniqueness in on_message)
-                self.last_timestamps[device_id] = new_timestamp
-
             # 1. Look up device in database to get client_id
-            # Step 1: Query by device_id (string)
             device = Device.objects(device_id=str(device_id)).first()
-            
-            # Step 2: Fallback - SequenceFields can be tricky with string lookups in some versions
+
             if not device:
                 for d in Device.objects.only('device_id', 'client_id', 'connection'):
                     if str(d.device_id) == str(device_id):
                         device = d
                         break
 
-            # --- LOOKUP LOGIC ---
             if not device:
-                return # Silently stop if device not in DB
-            else:
-                # Get the client_id (OrkoFleet's c_s_id)
-                device[constants.DEVICE__CONNECTION] = {"last_updated": new_timestamp,
-                                                        "status":device[constants.DEVICE__CONNECTION].get("status")}
-                device.save()
-                client_id = getattr(device, 'client_id', None)
-                if not client_id:
-                    connection_data = getattr(device, 'connection', {})
-                    if isinstance(connection_data, dict):
-                        client_id = connection_data.get('client_id')
-            
+                return
+
+            server_timestamp = common_utils.get_time_iso()
+            last_updated = common_utils.epoch_to_datetime(server_timestamp * 1000)
+            Device.objects(id=device.id).update_one(
+                **{f"set__{constants.DEVICE__CONNECTION}": {"last_updated": last_updated, "status": "online"}}
+            )
+
+            client_id = getattr(device, 'client_id', None)
+            if not client_id:
+                connection_data = getattr(device, 'connection', {})
+                if isinstance(connection_data, dict):
+                    client_id = connection_data.get('client_id')
+
             if not client_id:
                 return
 
@@ -222,9 +202,8 @@ class MQTTClientService:
                 "Content-Type": "application/json"
             }
             
-            # Always log to terminal
             logger.info(f"[MQTT] -> API Payload: {json.dumps(payload)}")
-            
+
             # Save to database log ONLY if 'e' has values
             has_errors = any(item.get("e") for item in mapped_s) or bool(root_errors)
             if has_errors:
@@ -236,12 +215,6 @@ class MQTTClientService:
             response = requests.post(api_url, json=payload, headers=headers, timeout=5)
             logger.info(f"[MQTT] Forwarded {device_id} status to API. Status: {response.status_code}")
             
-            # Update device's last_updated timestamp after successful API post
-            if response.status_code == 200 and new_timestamp is not None:
-                from esp32OTA.Services.GatewayService import GatewayService
-                GatewayService.update_device_last_updated(device_id, new_timestamp)
-            
-            # Restore terminal logging of response (but not database)
             try:
                 resp_data = response.json()
                 logger.info(f"[MQTT] API Response: {json.dumps(resp_data)}")
@@ -249,7 +222,7 @@ class MQTTClientService:
                 logger.info(f"[MQTT] API Response: {response.text}")
             
         except Exception as e:
-            logger.error(f"[MQTT] Error handling device status for {device_id}: {str(e)}")
+            logger.error(f"[MQTT] Error handling device status for {device_id}: {str(e)}", exc_info=True)
 
     def handle_device_usage(self, device_id, raw_data):
         """
@@ -257,8 +230,6 @@ class MQTTClientService:
         """
         try:
             new_timestamp = raw_data.get("t") or raw_data.get("timestamp")
-            if new_timestamp:
-                self.last_usage_timestamps[device_id] = new_timestamp
 
             usage_inner = raw_data.get("d", {})
             if not usage_inner:
@@ -284,6 +255,16 @@ class MQTTClientService:
             
             response = requests.post(api_url, json=payload, headers=headers, timeout=5)
             logger.info(f"[MQTT] Forwarded {device_id} usage to API. Status: {response.status_code}")
+
+            # Only save timestamp after successful API post
+            if new_timestamp:
+                self.last_usage_timestamps[device_id] = new_timestamp
+
+            # Update last usage state in memory for stale-completion watchdog
+            self.last_incomplete_usage[device_id] = {
+                "payload": dict(payload),
+                "received_at": datetime.now().timestamp()
+            }
             
             # Restore terminal logging of response (but not database)
             try:
@@ -294,6 +275,41 @@ class MQTTClientService:
 
         except Exception as e:
             logger.error(f"[MQTT] Error handling device usage for {device_id}: {str(e)}")
+
+    def check_stale_usage_completions(self):
+        """
+        Called by the scheduler every 30 seconds.
+        Checks in-memory last usage data, finds any device whose last usage had
+        is_completed=0 for more than 3 minutes, and auto-sends a completion payload.
+        """
+        try:
+            now = datetime.now().timestamp()
+            stale_threshold = 3 * 60  # 3 minutes in seconds
+
+            for device_id, entry in list(self.last_incomplete_usage.items()):
+                if entry["payload"].get("is_completed") != 0:
+                    continue
+                elapsed = now - entry["received_at"]
+                if elapsed >= stale_threshold:
+                    completion_payload = dict(entry["payload"])
+                    completion_payload["is_completed"] = 1
+
+                    base_url = getattr(config, 'ORKOFLEET_BASE_URL')
+                    api_url = f"{base_url}/api/v2/charge-sessions/add-usage-data"
+                    headers = {"Content-Type": "application/json"}
+
+                    logger.info(f"[MQTT] Auto-completing stale usage for {device_id} (elapsed: {elapsed:.0f}s): {json.dumps(completion_payload)}")
+
+                    try:
+                        response = requests.post(api_url, json=completion_payload, headers=headers, timeout=5)
+                        logger.info(f"[MQTT] Auto-completion response for {device_id}: {response.status_code}")
+                    except Exception as post_err:
+                        logger.error(f"[MQTT] Auto-completion POST failed for {device_id}: {str(post_err)}")
+
+                    del self.last_incomplete_usage[device_id]
+
+        except Exception as e:
+            logger.error(f"[MQTT] Error in stale usage check: {str(e)}")
 
     def handle_config_request(self, device_id):
         """

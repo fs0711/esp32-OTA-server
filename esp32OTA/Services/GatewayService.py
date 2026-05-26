@@ -46,158 +46,69 @@ class GatewayService:
         except Exception as e:
             return [f"Error reading logs: {str(e)}"]
 
-    @classmethod
-    def update_device_last_updated(cls, device_id, timestamp):
-        """
-        Updates the device's last_updated field in the connection object.
-        Called after successfully posting device status to OrkoFleet API.
-        """
-        try:
-            # Query device by device_id
-            device = Device.objects(device_id=str(device_id)).first()
-            
-            # Fallback: iterate through devices if direct query fails
-            if not device:
-                for d in Device.objects.only('device_id', 'connection'):
-                    if str(d.device_id) == str(device_id):
-                        device = d
-                        break
-            
-            if not device:
-                logger.warning(f"[GATEWAY] Device {device_id} not found for updating last_updated")
-                return False
-            
-            # Update connection.last_updated with the timestamp
-            if not device.connection:
-                device.connection = {}
-            
-            device.connection['last_updated'] = timestamp
-            device.save()
-            
-            logger.info(f"[GATEWAY] Updated {device_id} last_updated to {timestamp}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"[GATEWAY] Error updating last_updated for {device_id}: {str(e)}")
-            return False
-
+   
     @classmethod
     def check_and_update_device_status(cls):
         """
         Checks all devices' last_updated timestamps and updates their status to online/offline.
-        If last_updated is within 2 minutes: status = online
-        If last_updated is more than 2 minutes ago: status = offline
+        If last_updated is within 1 minute: status = online
+        If last_updated is more than 1 minute ago: status = offline
         """
         try:
             from datetime import datetime, timezone
-            
-            # Get current time
-            current_time = datetime.now(timezone.utc)
-            threshold_seconds = 120  # 2 minutes
-            
-            # Get all devices from database
+
+            current_time = datetime.now()  # naive local time — matches stored last_updated format
+            threshold_seconds = 60  # 1 minute
+
             devices = Device.objects()
-            
+
             if not devices:
                 return
-            
+
             updates_count = 0
-            
+
             for device in devices:
                 try:
-                    # Get last_updated from connection object
                     connection = getattr(device, 'connection', {})
                     if not connection:
                         continue
-                    
+
                     last_updated = connection.get('last_updated')
                     if not last_updated:
                         continue
-                    
-                    # Parse last_updated timestamp
-                    # Handle both string and datetime formats
+
+                    # Stored format: DD-MM-YYYY HH:MM:SS (DISPLAY_DATETIME_FORMAT)
                     if isinstance(last_updated, str):
-                        # Try to parse ISO format timestamp
                         try:
-                            last_updated_dt = datetime.fromisoformat(last_updated.replace('Z', '+00:00'))
-                        except:
-                            # Try other formats
-                            last_updated_dt = datetime.fromisoformat(last_updated)
+                            last_updated_dt = datetime.strptime(last_updated, "%d-%m-%Y %H:%M:%S")
+                        except ValueError:
+                            last_updated_dt = datetime.fromisoformat(last_updated.replace('Z', ''))
                     else:
                         last_updated_dt = last_updated
-                    
-                    # Make sure both are timezone-aware for comparison
-                    if last_updated_dt.tzinfo is None:
-                        last_updated_dt = last_updated_dt.replace(tzinfo=timezone.utc)
-                    
-                    # Calculate time difference
+
+                    # No timezone conversion — both are naive local time
                     time_diff = (current_time - last_updated_dt).total_seconds()
-                    
-                    # Determine status
                     new_status = "online" if time_diff <= threshold_seconds else "offline"
-                    
-                    # Get current status
                     current_status = connection.get('status')
-                    
-                    # Update if status changed
+
                     if current_status != new_status:
-                        device.connection['status'] = new_status
-                        device.save()
+                        Device.objects(id=device.id).update_one(
+                            set__connection={"last_updated": last_updated, "status": new_status}
+                        )
                         updates_count += 1
-                        logger.info(f"[GATEWAY] Device {device.device_id} status updated to {new_status} (last_updated: {time_diff}s ago)")
-                    
+                        logger.info(f"[GATEWAY] Device {device.device_id} status updated to {new_status} (last_updated: {time_diff:.0f}s ago)")
+
                 except Exception as e:
                     logger.error(f"[GATEWAY] Error checking status for device {device.device_id}: {str(e)}")
                     continue
-            
+
             if updates_count > 0:
                 logger.info(f"[GATEWAY] Device status check completed. Updated {updates_count} devices.")
-            
+
         except Exception as e:
             logger.error(f"[GATEWAY] Error in check_and_update_device_status: {str(e)}")
 
-    @classmethod
-    def refresh_all_devices_online(cls):
-        """
-        Refreshes all devices by updating their last_updated to current time and status to online.
-        Called every 90 seconds to keep device connection status current.
-        """
-        try:
-            from datetime import datetime, timezone
-            
-            # Get current time
-            current_time = datetime.now(timezone.utc)
-            
-            # Get all devices from database
-            devices = Device.objects()
-            
-            if not devices:
-                return
-            
-            updates_count = 0
-            
-            for device in devices:
-                try:
-                    # Initialize or update connection object
-                    if not device.connection:
-                        device.connection = {}
-                    
-                    # Update last_updated to current time
-                    device.connection['last_updated'] = current_time
-                    # Set status to online
-                    device.connection['status'] = 'online'
-                    device.save()
-                    updates_count += 1
-                    
-                except Exception as e:
-                    logger.error(f"[GATEWAY] Error refreshing device {device.device_id}: {str(e)}")
-                    continue
-            
-            logger.info(f"[GATEWAY] Refreshed {updates_count} devices - set all to online with current timestamp")
-            
-        except Exception as e:
-            logger.error(f"[GATEWAY] Error in refresh_all_devices_online: {str(e)}")
-
+    
     @classmethod
     def poll_devices(cls):
         """
