@@ -204,8 +204,9 @@ class MQTTClientService:
             
             logger.info(f"[MQTT] -> API Payload: {json.dumps(payload)}")
 
-            # Save to database log ONLY if 'e' has values
-            has_errors = any(item.get("e") for item in mapped_s) or bool(root_errors)
+            # Save to database log ONLY if 'e' contains actual error values (not empty or [0] or 0)
+            has_errors = any(item.get("e") and item.get("e") != 0 and item.get("e") != [0] for item in mapped_s) or \
+                         (root_errors and root_errors != 0 and root_errors != [0])
             if has_errors:
                 from esp32OTA.GatewayLogging.controllers.GatewayLoggingController import GatewayLoggingController
                 from esp32OTA import app
@@ -245,6 +246,29 @@ class MQTTClientService:
                 "duration": usage_inner.get("d"),
                 "is_completed": usage_inner.get("is")
             }
+
+            # Save to UsageLogging before sending to API
+            try:
+                from esp32OTA.UsageLogging.controllers.UsageLoggingController import UsageLoggingController
+                from esp32OTA import app
+                
+                usage_log_data = {
+                    constants.USAGE_LOGGING__DEVICE_ID: str(device_id),
+                    constants.USAGE_LOGGING__TIMESTAMP: str(common_utils.get_time_iso()),
+                    constants.USAGE_LOGGING__SOCKET_ID: payload["socket_id"],
+                    constants.USAGE_LOGGING__SESSION_ID: str(payload["session_id"]),
+                    constants.USAGE_LOGGING__CONSUMPTION: payload["consumption"],
+                    constants.USAGE_LOGGING__CURRENT: payload["current"],
+                    constants.USAGE_LOGGING__VOLTAGE: payload["voltage"],
+                    constants.USAGE_LOGGING__DURATION: payload["duration"],
+                    constants.USAGE_LOGGING__IS_COMPLETED: payload["is_completed"]
+                }
+                
+                with app.app_context():
+                    UsageLoggingController.log_usage(data=usage_log_data)
+                    logger.info(f"[MQTT] Usage data saved to database for {device_id}")
+            except Exception as log_err:
+                logger.error(f"[MQTT] Failed to save usage log to database: {str(log_err)}")
 
             base_url = getattr(config, 'ORKOFLEET_BASE_URL')
             api_url = f"{base_url}/api/v2/charge-sessions/add-usage-data"
@@ -293,6 +317,29 @@ class MQTTClientService:
                 if elapsed >= stale_threshold:
                     completion_payload = dict(entry["payload"])
                     completion_payload["is_completed"] = 1
+
+                    # Save completion to UsageLogging before sending to API
+                    try:
+                        from esp32OTA.UsageLogging.controllers.UsageLoggingController import UsageLoggingController
+                        from esp32OTA import app
+                        
+                        usage_log_data = {
+                            constants.USAGE_LOGGING__DEVICE_ID: str(device_id),
+                            constants.USAGE_LOGGING__TIMESTAMP: str(common_utils.get_time_iso()),
+                            constants.USAGE_LOGGING__SOCKET_ID: completion_payload["socket_id"],
+                            constants.USAGE_LOGGING__SESSION_ID: str(completion_payload["session_id"]),
+                            constants.USAGE_LOGGING__CONSUMPTION: completion_payload["consumption"],
+                            constants.USAGE_LOGGING__CURRENT: completion_payload["current"],
+                            constants.USAGE_LOGGING__VOLTAGE: completion_payload["voltage"],
+                            constants.USAGE_LOGGING__DURATION: completion_payload["duration"],
+                            constants.USAGE_LOGGING__IS_COMPLETED: completion_payload["is_completed"]
+                        }
+                        
+                        with app.app_context():
+                            UsageLoggingController.log_usage(data=usage_log_data)
+                            logger.info(f"[MQTT] Stale usage completion saved to database for {device_id}")
+                    except Exception as log_err:
+                        logger.error(f"[MQTT] Failed to save stale usage log to database: {str(log_err)}")
 
                     base_url = getattr(config, 'ORKOFLEET_BASE_URL')
                     api_url = f"{base_url}/api/v2/charge-sessions/add-usage-data"
