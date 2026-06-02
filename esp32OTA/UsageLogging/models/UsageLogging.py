@@ -26,6 +26,9 @@ class UsageLogging(models.Model):
     voltage = db.IntField(required=True)
     duration = db.IntField(required=True)
     is_completed = db.IntField(required=True)
+    auto_completion = db.BooleanField(required=True)
+    response_code = db.IntField()
+    api_response = db.DictField()
 
     def __str__(self):
         return str(self.pk)
@@ -40,7 +43,10 @@ class UsageLogging(models.Model):
             constants.USAGE_LOGGING__CURRENT: self.current,
             constants.USAGE_LOGGING__VOLTAGE: self.voltage,
             constants.USAGE_LOGGING__DURATION: self.duration,
-            constants.USAGE_LOGGING__IS_COMPLETED: self.is_completed
+            constants.USAGE_LOGGING__IS_COMPLETED: self.is_completed,
+            constants.USAGE_LOGGING__AUTO_COMPLETION: self.auto_completion,
+            constants.USAGE_LOGGING__RESPONSE_CODE: self.response_code,
+            constants.USAGE_LOGGING__API_RESPONSE: self.api_response
         }
 
     def display_min(self):

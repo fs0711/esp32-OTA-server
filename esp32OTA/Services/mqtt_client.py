@@ -247,7 +247,8 @@ class MQTTClientService:
                 "is_completed": usage_inner.get("is")
             }
 
-            # Save to UsageLogging before sending to API
+            # Save to UsageLogging first then send to API and update
+            log_id = None
             try:
                 from esp32OTA.UsageLogging.controllers.UsageLoggingController import UsageLoggingController
                 from esp32OTA import app
@@ -261,14 +262,17 @@ class MQTTClientService:
                     constants.USAGE_LOGGING__CURRENT: payload["current"],
                     constants.USAGE_LOGGING__VOLTAGE: payload["voltage"],
                     constants.USAGE_LOGGING__DURATION: payload["duration"],
-                    constants.USAGE_LOGGING__IS_COMPLETED: payload["is_completed"]
+                    constants.USAGE_LOGGING__IS_COMPLETED: payload["is_completed"],
+                    constants.USAGE_LOGGING__AUTO_COMPLETION: False
                 }
                 
                 with app.app_context():
-                    UsageLoggingController.log_usage(data=usage_log_data)
-                    logger.info(f"[MQTT] Usage data saved to database for {device_id}")
+                    usage_obj = UsageLoggingController.log_usage(data=usage_log_data)
+                    if usage_obj:
+                        log_id = str(usage_obj.id)
+                        logger.info(f"[MQTT] Usage data pre-saved to database for {device_id}, ID: {log_id}")
             except Exception as log_err:
-                logger.error(f"[MQTT] Failed to save usage log to database: {str(log_err)}")
+                logger.error(f"[MQTT] Failed to pre-save usage log to database: {str(log_err)}")
 
             base_url = getattr(config, 'ORKOFLEET_BASE_URL')
             api_url = f"{base_url}/api/v2/charge-sessions/add-usage-data"
@@ -277,25 +281,45 @@ class MQTTClientService:
             # Always log outgoing to terminal
             logger.info(f"[MQTT] -> Usage API Payload: {json.dumps(payload)}")
             
-            response = requests.post(api_url, json=payload, headers=headers, timeout=5)
-            logger.info(f"[MQTT] Forwarded {device_id} usage to API. Status: {response.status_code}")
+            api_response_data = {}
+            api_response_code = None
+            try:
+                response = requests.post(api_url, json=payload, headers=headers, timeout=5)
+                logger.info(f"[MQTT] Forwarded {device_id} usage to API. Status: {response.status_code}")
+                api_response_code = response.status_code
+                
+                try:
+                    api_response_data = response.json()
+                    logger.info(f"[MQTT] Usage API Response: {json.dumps(api_response_data)}")
+                except:
+                    api_response_data = {"raw_response": response.text}
+                    logger.info(f"[MQTT] Usage API Response: {response.text}")
+                
+                # Only save timestamp after successful API post
+                if response.status_code in [200, 201] and new_timestamp:
+                    self.last_usage_timestamps[device_id] = new_timestamp
+            except Exception as api_err:
+                logger.error(f"[MQTT] API Post failed for {device_id}: {str(api_err)}")
+                api_response_data = {"error": str(api_err)}
 
-            # Only save timestamp after successful API post
-            if new_timestamp:
-                self.last_usage_timestamps[device_id] = new_timestamp
+            # Update existing log with API result
+            if log_id:
+                try:
+                    update_data = {
+                        f"set__{constants.USAGE_LOGGING__RESPONSE_CODE}": api_response_code,
+                        f"set__{constants.USAGE_LOGGING__API_RESPONSE}": api_response_data
+                    }
+                    with app.app_context():
+                        UsageLoggingController.update_usage(log_id=log_id, data=update_data)
+                        logger.info(f"[MQTT] Updated usage log {log_id} with API response")
+                except Exception as up_err:
+                    logger.error(f"[MQTT] Failed to update usage log {log_id}: {str(up_err)}")
 
             # Update last usage state in memory for stale-completion watchdog
             self.last_incomplete_usage[device_id] = {
                 "payload": dict(payload),
                 "received_at": datetime.now().timestamp()
             }
-            
-            # Restore terminal logging of response (but not database)
-            try:
-                resp_data = response.json()
-                logger.info(f"[MQTT] Usage API Response: {json.dumps(resp_data)}")
-            except:
-                logger.info(f"[MQTT] Usage API Response: {response.text}")
 
         except Exception as e:
             logger.error(f"[MQTT] Error handling device usage for {device_id}: {str(e)}")
@@ -318,7 +342,8 @@ class MQTTClientService:
                     completion_payload = dict(entry["payload"])
                     completion_payload["is_completed"] = 1
 
-                    # Save completion to UsageLogging before sending to API
+                    # Save completion to UsageLogging then send to API and update
+                    log_id = None
                     try:
                         from esp32OTA.UsageLogging.controllers.UsageLoggingController import UsageLoggingController
                         from esp32OTA import app
@@ -332,14 +357,17 @@ class MQTTClientService:
                             constants.USAGE_LOGGING__CURRENT: completion_payload["current"],
                             constants.USAGE_LOGGING__VOLTAGE: completion_payload["voltage"],
                             constants.USAGE_LOGGING__DURATION: completion_payload["duration"],
-                            constants.USAGE_LOGGING__IS_COMPLETED: completion_payload["is_completed"]
+                            constants.USAGE_LOGGING__IS_COMPLETED: completion_payload["is_completed"],
+                            constants.USAGE_LOGGING__AUTO_COMPLETION: True
                         }
                         
                         with app.app_context():
-                            UsageLoggingController.log_usage(data=usage_log_data)
-                            logger.info(f"[MQTT] Stale usage completion saved to database for {device_id}")
+                            usage_obj = UsageLoggingController.log_usage(data=usage_log_data)
+                            if usage_obj:
+                                log_id = str(usage_obj.id)
+                                logger.info(f"[MQTT] Stale usage pre-saved to database for {device_id}, ID: {log_id}")
                     except Exception as log_err:
-                        logger.error(f"[MQTT] Failed to save stale usage log to database: {str(log_err)}")
+                        logger.error(f"[MQTT] Failed to pre-save stale usage log to database: {str(log_err)}")
 
                     base_url = getattr(config, 'ORKOFLEET_BASE_URL')
                     api_url = f"{base_url}/api/v2/charge-sessions/add-usage-data"
@@ -347,28 +375,43 @@ class MQTTClientService:
 
                     logger.info(f"[MQTT] Auto-completing stale usage for {device_id} (elapsed: {elapsed:.0f}s): {json.dumps(completion_payload)}")
 
+                    api_response_data = {}
+                    api_response_code = None
+                    try:
+                        response = requests.post(api_url, json=completion_payload, headers=headers, timeout=5)
+                        logger.info(f"[MQTT] Auto-completion response for {device_id}: {response.status_code}")
+                        api_response_code = response.status_code
+                        try:
+                            api_response_data = response.json()
+                        except Exception:
+                            api_response_data = {"raw_response": response.text}
+                    except Exception as post_err:
+                        logger.error(f"[MQTT] Auto-completion POST failed for {device_id}: {str(post_err)}")
+                        api_response_data = {"error": str(post_err)}
+
+                    # Update record with API result
+                    if log_id:
+                        try:
+                            update_data = {
+                                f"set__{constants.USAGE_LOGGING__RESPONSE_CODE}": api_response_code,
+                                f"set__{constants.USAGE_LOGGING__API_RESPONSE}": api_response_data
+                            }
+                            with app.app_context():
+                                UsageLoggingController.update_usage(log_id=log_id, data=update_data)
+                                logger.info(f"[MQTT] Updated stale usage log {log_id} with API response")
+                        except Exception as up_err:
+                            logger.error(f"[MQTT] Failed to update stale usage log {log_id}: {str(up_err)}")
+                        except Exception as log_err:
+                            logger.error(f"[MQTT] Failed to save stale usage log to database: {str(log_err)}")
+
                     mqtt_log = {
                         "event": "auto_completion",
                         "request": {
                             "url": api_url,
                             "payload": completion_payload
-                        }
+                        },
+                        "response": api_response_data
                     }
-
-                    try:
-                        response = requests.post(api_url, json=completion_payload, headers=headers, timeout=5)
-                        logger.info(f"[MQTT] Auto-completion response for {device_id}: {response.status_code}")
-                        try:
-                            resp_body = response.json()
-                        except Exception:
-                            resp_body = response.text
-                        mqtt_log["response"] = {
-                            "status_code": response.status_code,
-                            "body": resp_body
-                        }
-                    except Exception as post_err:
-                        logger.error(f"[MQTT] Auto-completion POST failed for {device_id}: {str(post_err)}")
-                        mqtt_log["response"] = {"error": str(post_err)}
 
                     self.publish(f"ZV/DEVICES/{device_id}/auto_completion", mqtt_log)
                     del self.last_incomplete_usage[device_id]

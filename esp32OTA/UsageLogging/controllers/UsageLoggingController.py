@@ -20,8 +20,16 @@ class UsageLoggingController(Controller):
         _, _, obj = cls.db_insert_file(
             data=data, default_validation=True)
         
-        return response_utils.get_response_object(
-            response_code=response_codes.CODE_SUCCESS,
-            response_message=response_codes.MESSAGE_SUCCESS,
-            response_data=obj.display()
+        return obj
+
+    @classmethod
+    def update_usage(cls, log_id, data):
+        """
+        Updates an existing usage log entry.
+        """
+        success, message, obj = cls.db_update_single_record(
+            read_filter={constants.ID: log_id},
+            update_filter=data,
+            update_mode=constants.UPDATE_MODE__PARTIAL
         )
+        return obj
