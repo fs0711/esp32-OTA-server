@@ -181,10 +181,14 @@ class MQTTClientService:
                     signal_mapped = signal_raw
 
                 # Handle error field 'e': could be string "E2", list ["E2"], or 0/null
+                # "E0", 0, null are considered "no error"
                 e_raw = item.get("e")
                 e_mapped = []
-                if e_raw and e_raw != 0:
-                    e_mapped = e_raw if isinstance(e_raw, list) else [str(e_raw)]
+                if e_raw and e_raw != 0 and e_raw != "E0":
+                    if isinstance(e_raw, list):
+                        e_mapped = [str(x) for x in e_raw if x and x != 0 and x != "E0"]
+                    else:
+                        e_mapped = [str(e_raw)]
 
                 mapped_s.append({
                     "id": item.get("id"),
@@ -196,8 +200,11 @@ class MQTTClientService:
             # Root error field: normalize to list, default to empty
             root_errors_raw = raw_data.get("e")
             root_errors = []
-            if root_errors_raw and root_errors_raw != 0:
-                root_errors = root_errors_raw if isinstance(root_errors_raw, list) else [str(root_errors_raw)]
+            if root_errors_raw and root_errors_raw != 0 and root_errors_raw != "E0":
+                if isinstance(root_errors_raw, list):
+                    root_errors = [str(x) for x in root_errors_raw if x and x != 0 and x != "E0"]
+                else:
+                    root_errors = [str(root_errors_raw)]
             
             payload = {
                 "c_s_id": int(client_id) if str(client_id).isdigit() else client_id,
