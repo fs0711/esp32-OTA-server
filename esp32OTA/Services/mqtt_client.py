@@ -166,28 +166,38 @@ class MQTTClientService:
 
 
             # 2. Map incoming status format to requested API format
-            # Device sends: {"t": 123, "s": [{"id": 2, "st": 0, "sg": "w", "e": ["E2"]}], "e": []}
+            # Device sends: {"t": 123, "s": [{"id": 2, "st": 0, "sg": "w", "e": "E2"}], "e": []}
             incoming_s = raw_data.get("s", [])
             mapped_s = []
             
             for item in incoming_s:
-                # Signal type mapping: w -> wifi, g -> gsm
+                # Signal type mapping: w -> wifi, g -> gsm, empty defaults to wifi
                 signal_raw = item.get("sg")
-                signal_mapped = signal_raw
-                if signal_raw == "w":
+                if signal_raw == "w" or not signal_raw:
                     signal_mapped = "wifi"
                 elif signal_raw == "g":
                     signal_mapped = "gsm"
+                else:
+                    signal_mapped = signal_raw
+
+                # Handle error field 'e': could be string "E2", list ["E2"], or 0/null
+                e_raw = item.get("e")
+                e_mapped = []
+                if e_raw and e_raw != 0:
+                    e_mapped = e_raw if isinstance(e_raw, list) else [str(e_raw)]
 
                 mapped_s.append({
                     "id": item.get("id"),
                     "status": item.get("st"), # st -> status
                     "signal_type": signal_mapped,
-                    "e": item.get("e", [])
+                    "e": e_mapped
                 })
             
-            # Root error field: send to OrkoFleet only if it has values
-            root_errors = raw_data.get("e", [])
+            # Root error field: normalize to list, default to empty
+            root_errors_raw = raw_data.get("e")
+            root_errors = []
+            if root_errors_raw and root_errors_raw != 0:
+                root_errors = root_errors_raw if isinstance(root_errors_raw, list) else [str(root_errors_raw)]
             
             payload = {
                 "c_s_id": int(client_id) if str(client_id).isdigit() else client_id,
@@ -204,9 +214,8 @@ class MQTTClientService:
             
             logger.info(f"[MQTT] -> API Payload: {json.dumps(payload)}")
 
-            # Save to database log ONLY if 'e' contains actual error values (not empty or [0] or 0)
-            has_errors = any(item.get("e") and item.get("e") != 0 and item.get("e") != [0] for item in mapped_s) or \
-                         (root_errors and root_errors != 0 and root_errors != [0])
+            # Save to database log ONLY if 'e' contains actual error values (not empty or 0)
+            has_errors = any(item.get("e") for item in mapped_s) or bool(root_errors)
             if has_errors:
                 from esp32OTA.GatewayLogging.controllers.GatewayLoggingController import GatewayLoggingController
                 from esp32OTA import app
