@@ -243,7 +243,7 @@ class MQTTClientService:
                 "consumption": usage_inner.get("co"),
                 "current": usage_inner.get("cu"),
                 "voltage": usage_inner.get("v"),
-                "duration": usage_inner.get("d"),
+                "duration": (usage_inner.get("d") or 0) * 1000, # Multiply duration by 1000
                 "is_completed": usage_inner.get("is")
             }
 
