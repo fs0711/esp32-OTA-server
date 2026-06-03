@@ -15,7 +15,7 @@ class GatewayLoggingController(Controller):
     Model = GatewayLogging # type: ignore[assignment]
 
     @classmethod
-    def log_gateway_activity(cls, payload, log_type):
+    def log_gateway_activity(cls, payload, log_type, device_id):
         """
         Internal method to save gateway activity to DB.
         """
@@ -29,7 +29,8 @@ class GatewayLoggingController(Controller):
 
         data = {
             "payload": payload,
-            "log_type": log_type
+            "log_type": log_type,
+            "device_id": device_id
         }
         _, _, obj = cls.db_insert_file(
             data=data, default_validation=False)

@@ -331,7 +331,7 @@ class DeviceController(Controller):
     @classmethod
     def ping_controller(cls, data):
         """
-        Sends a ping command to a device identified by client_id (c_s_id).
+        Sends a command to a device identified by client_id (c_s_id).
         Maps incoming socket status fields to shortened names and publishes via MQTT.
         
         Expected data format:
@@ -347,7 +347,7 @@ class DeviceController(Controller):
             ]
         }
         
-        Published format:
+        Published format (to ZV/DEVICES/{device_id}/command):
         {
             "t": 1778452927,
             "s": [
@@ -397,7 +397,7 @@ class DeviceController(Controller):
         }
         
         # Publish to MQTT topic
-        topic = f"ZV/DEVICES/{device.device_id}/ping"
+        topic = f"ZV/DEVICES/{device.device_id}/command"
         
         try:
             mqtt_service.publish(topic, mqtt_payload)
@@ -415,7 +415,7 @@ class DeviceController(Controller):
         except Exception as e:
             return response_utils.get_response_object(
                 response_code=response_codes.CODE_OPERATION_FAILED,
-                response_message=f"Failed to send ping: {str(e)}",
+                response_message=f"Failed to send command: {str(e)}",
                 response_data=[]
             )
     

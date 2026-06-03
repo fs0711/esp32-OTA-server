@@ -156,7 +156,7 @@ class GatewayService:
                 if response.status_code == 200:
                     api_data = response.json()
                     
-                    # 3. Process data for command payload
+                    # 3. Process data for ping payload
                     current_time = datetime.now()
                     
                     # Filter 's' array to remove 'box_open_request' and shorten keys
@@ -188,7 +188,7 @@ class GatewayService:
                         status_changed = False
                     
                     if status_changed:
-                        topic = f"ZV/DEVICES/{device.device_id}/command"
+                        topic = f"ZV/DEVICES/{device.device_id}/ping"
                         
                         # Optimized payload as per user request: timestamp -> t
                         payload = json.dumps({
@@ -196,7 +196,7 @@ class GatewayService:
                             "s": filtered_s
                         })
                         
-                        # Using retain=True so the latest command is always available to the device
+                        # Using retain=True so the latest ping is always available to the device
                         client.publish(topic, payload, qos=1, retain=True)
                         cls._last_status[str(device.device_id)] = current_status_summary
                         print(f"[{current_time.strftime('%H:%M:%S')}] [GW] -> {device.device_id} | Topic: {topic}")

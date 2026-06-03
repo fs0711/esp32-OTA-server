@@ -54,6 +54,7 @@ class MQTTClientService:
             client.subscribe("ZV/DEVICES/+/send_config", qos=1)
             client.subscribe("ZV/DEVICES/+/configuration", qos=1)
             client.subscribe("ZV/DEVICES/+/setconfig", qos=1)
+            client.subscribe("ZV/DEVICES/+/getfirmware", qos=1)
         else:
             self.connected = False
             logger.error(f"[MQTT] Connection failed with code {reason_code}")
@@ -114,7 +115,7 @@ class MQTTClientService:
                         pass  # Not JSON or no send_config flag
                 
                 # Handle configuration topic
-                if len(topic_parts) >= 3 and topic_parts[3] == "configuration":
+                if len(topic_parts) >= 4 and topic_parts[3] == "configuration":
                     device_id = topic_parts[2]
                     logger.info(f"[MQTT] Configuration request received from {device_id}, payload: {payload_str}")
                     self.handle_config_request(device_id)
@@ -128,6 +129,12 @@ class MQTTClientService:
                         self.handle_setconfig(device_id, data)
                     except json.JSONDecodeError:
                         logger.error(f"[MQTT] Failed to decode setconfig payload for {device_id}")
+
+                # Handle getfirmware topic
+                if len(topic_parts) >= 4 and topic_parts[3] == "getfirmware":
+                    device_id = topic_parts[2]
+                    logger.info(f"[MQTT] getfirmware topic request received from {device_id}")
+                    self.handle_firmware_request(device_id, payload_str)
         except Exception as e:
             logger.error(f"[MQTT] Error in on_message: {str(e)}")
 
@@ -227,7 +234,7 @@ class MQTTClientService:
                 from esp32OTA.GatewayLogging.controllers.GatewayLoggingController import GatewayLoggingController
                 from esp32OTA import app
                 with app.app_context():
-                    GatewayLoggingController.log_gateway_activity(json.dumps(payload), "sent")
+                    GatewayLoggingController.log_gateway_activity(json.dumps(payload), "sent", device_id)
 
             response = requests.post(api_url, json=payload, headers=headers, timeout=5)
             logger.info(f"[MQTT] Forwarded {device_id} status to API. Status: {response.status_code}")
@@ -271,7 +278,7 @@ class MQTTClientService:
                 
                 usage_log_data = {
                     constants.USAGE_LOGGING__DEVICE_ID: str(device_id),
-                    constants.USAGE_LOGGING__TIMESTAMP: str(common_utils.get_time_iso()),
+                    constants.USAGE_LOGGING__TIMESTAMP: str(new_timestamp if new_timestamp is not None else common_utils.get_time_iso()),
                     constants.USAGE_LOGGING__SOCKET_ID: payload["socket_id"],
                     constants.USAGE_LOGGING__SESSION_ID: str(payload["session_id"]),
                     constants.USAGE_LOGGING__CONSUMPTION: payload["consumption"],
@@ -334,7 +341,8 @@ class MQTTClientService:
             # Update last usage state in memory for stale-completion watchdog
             self.last_incomplete_usage[device_id] = {
                 "payload": dict(payload),
-                "received_at": datetime.now().timestamp()
+                "received_at": datetime.now().timestamp(),
+                "device_timestamp": new_timestamp
             }
 
         except Exception as e:
@@ -366,7 +374,7 @@ class MQTTClientService:
                         
                         usage_log_data = {
                             constants.USAGE_LOGGING__DEVICE_ID: str(device_id),
-                            constants.USAGE_LOGGING__TIMESTAMP: str(common_utils.get_time_iso()),
+                            constants.USAGE_LOGGING__TIMESTAMP: str(entry.get("device_timestamp") if entry.get("device_timestamp") is not None else common_utils.get_time_iso()),
                             constants.USAGE_LOGGING__SOCKET_ID: completion_payload["socket_id"],
                             constants.USAGE_LOGGING__SESSION_ID: str(completion_payload["session_id"]),
                             constants.USAGE_LOGGING__CONSUMPTION: completion_payload["consumption"],
@@ -515,6 +523,47 @@ class MQTTClientService:
             logger.info(f"[MQTT] setconfig applied for {device_id}: {update_kwargs}")
         except Exception as e:
             logger.error(f"[MQTT] Error handling setconfig for {device_id}: {str(e)}", exc_info=True)
+
+    def handle_firmware_request(self, device_id, value):
+        """
+        Handles firmware request from device (getfirmware = 1).
+        Queries device and its assigned firmware, then publishes details back to MQTT.
+        """
+        try:
+            if str(value) != "1":
+                return
+                
+            # Primary lookup
+            device = Device.objects(device_id=str(device_id)).first()
+
+            if not device:
+                for d in Device.objects.all():
+                    if str(d.device_id) == str(device_id):
+                        device = d
+                        break
+
+            if device and device.fw_file:
+                firmware = device.fw_file.fetch()
+                if firmware:
+                    mqtt_payload = {
+                        "t": common_utils.get_time_iso(),
+                        "f_f": str(firmware.id),
+                        "f_v": str(device.fw_version) if device.fw_version else "",
+                        "h_v": str(device.hw_version) if device.hw_version else "",
+                        "n_v": str(firmware.version) if firmware.version else "",
+                        "u_p": str(firmware.update_path) if firmware.update_path else ""
+                    }
+                    
+                    # Publish to MQTT firmware topic
+                    self.publish_firmware_update(device_id, mqtt_payload)
+                    logger.info(f"[MQTT] Published firmware update details for {device_id}")
+                else:
+                    logger.warning(f"[MQTT] Firmware record not found for device {device_id}")
+            else:
+                logger.warning(f"[MQTT] Device {device_id} not found or has no assigned firmware")
+
+        except Exception as e:
+            logger.error(f"[MQTT] Error handling firmware request for {device_id}: {str(e)}", exc_info=True)
 
     def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties=None):
         self.connected = False

@@ -23,6 +23,7 @@ class GatewayLogging(models.Model):
 
     payload = db.DictField(required=True)
     log_type = db.StringField(required=True) # "sent" or "received"
+    device_id = db.StringField(required=True)
 
     def __str__(self):
         return str(self.pk)
@@ -31,7 +32,8 @@ class GatewayLogging(models.Model):
         return {
             constants.ID: str(self[constants.ID]),
             "payload": self.payload,
-            "log_type": self.log_type
+            "log_type": self.log_type,
+            "device_id": self.device_id
         }
 
     def display_min(self):

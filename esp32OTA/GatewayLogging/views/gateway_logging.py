@@ -16,7 +16,7 @@ gateway_logging_bp = Blueprint("gateway_logging_bp", __name__)
 @gateway_logging_bp.route("/log", methods=["POST"])
 @decorators.is_authenticated
 @decorators.keys_validator(
-    ["payload"],
+    ["payload", "device_id", "log_type"],
     request_form_data=True
 )
 def log_view(data):
