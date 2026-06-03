@@ -69,74 +69,69 @@ class MQTTClientService:
                 self.broker_stats[stat_key] = payload_str
             elif topic.startswith("ZV/DEVICES/"):
                 logger.info(f"[MQTT] <<< RECEIVED | topic: '{topic}' | payload: '{payload_str}'")
-                # Handle incoming status from devices
-                # Expected topic format: ZV/DEVICES/DV-2/status
-                topic_parts = topic.split('/')
-                if len(topic_parts) >= 3 and "status" in topic:
-                    device_id = topic_parts[2]
-                    try:
-                        data = json.loads(payload_str)
-                        # Identify if this is a new message by timestamp (t) BEFORE logging
+                topic_parts = topic.split("/")
+                
+                # Expected format: ZV/DEVICES/<device_id>/<sub_topic>
+                if len(topic_parts) < 3:
+                    return
+                
+                device_id = topic_parts[2]
+                sub_topic = topic_parts[3] if len(topic_parts) >= 4 else None
+
+                # Try loading JSON once as most handlers require it
+                data = None
+                try:
+                    data = json.loads(payload_str)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+                # Use precise sub_topic matching instead of 'in topic' to avoid false positives with device names
+                if sub_topic == "status":
+                    if data:
                         new_timestamp = data.get("t") or data.get("timestamp")
                         if new_timestamp is not None:
-                            last_ts = self.last_timestamps.get(device_id)
-                            if last_ts == new_timestamp:
-                                # Duplicate - silent ignore or debug log only
-                                return
+                            if self.last_timestamps.get(device_id) == new_timestamp:
+                                return # Duplicate status
                         
-                        # Only log if it's unique/new
                         logger.info(f"[MQTT] Unique status for {device_id}: {payload_str}")
                         self.handle_device_status(device_id, data)
-                    except json.JSONDecodeError:
+                    else:
                         logger.error(f"[MQTT] Failed to decode status payload for {device_id}")
-                elif len(topic_parts) >= 3 and "usage" in topic:
-                    device_id = topic_parts[2]
-                    try:
-                        data = json.loads(payload_str)
+
+                elif sub_topic == "usage":
+                    if data:
                         new_timestamp = data.get("t") or data.get("timestamp")
                         if new_timestamp is not None:
                             if self.last_usage_timestamps.get(device_id) == new_timestamp:
-                                return
+                                return # Duplicate usage
                         
                         logger.info(f"[MQTT] Unique usage for {device_id}: {payload_str}")
                         self.handle_device_usage(device_id, data)
-                    except json.JSONDecodeError:
+                    else:
                         logger.error(f"[MQTT] Failed to decode usage payload for {device_id}")
                 
-                # Check for config request (send_config = 1) in JSON payload
-                if len(topic_parts) >= 3:
-                    device_id = topic_parts[2]
-                    try:
-                        data = json.loads(payload_str)
-                        if isinstance(data, dict) and data.get("send_config") == 1:
-                            logger.info(f"[MQTT] Config request received from {device_id}")
-                            self.handle_config_request(device_id)
-                    except (json.JSONDecodeError, TypeError):
-                        pass  # Not JSON or no send_config flag
-                
-                # Handle configuration topic
-                if len(topic_parts) >= 4 and topic_parts[3] == "configuration":
-                    device_id = topic_parts[2]
-                    logger.info(f"[MQTT] Configuration request received from {device_id}, payload: {payload_str}")
+                elif sub_topic in ["configuration", "send_config", "command"]:
+                    logger.info(f"[MQTT] Config/Command request via topic {sub_topic} from {device_id}")
                     self.handle_config_request(device_id)
 
-                # Handle setconfig topic
-                if len(topic_parts) >= 4 and topic_parts[3] == "setconfig":
-                    device_id = topic_parts[2]
-                    try:
-                        data = json.loads(payload_str)
+                elif sub_topic == "setconfig":
+                    if data:
                         logger.info(f"[MQTT] setconfig received from {device_id}: {payload_str}")
                         self.handle_setconfig(device_id, data)
-                    except json.JSONDecodeError:
+                    else:
                         logger.error(f"[MQTT] Failed to decode setconfig payload for {device_id}")
 
-                # Handle getfirmware topic
-                if len(topic_parts) >= 4 and topic_parts[3] == "getfirmware":
-                    device_id = topic_parts[2]
+                elif sub_topic == "getfirmware":
                     logger.info(f"[MQTT] getfirmware topic request received from {device_id}")
                     self.handle_firmware_request(device_id, payload_str)
+
+                # Separate check: handle embedded config requests (send_config: 1) in ANY JSON payload
+                if isinstance(data, dict) and data.get("send_config") == 1:
+                    logger.info(f"[MQTT] Embedded config request detected from {device_id}")
+                    self.handle_config_request(device_id)
+
         except Exception as e:
-            logger.error(f"[MQTT] Error in on_message: {str(e)}")
+            logger.error(f"[MQTT] Error in on_message: {str(e)}", exc_info=True)
 
     def handle_device_status(self, device_id, raw_data):
         """
