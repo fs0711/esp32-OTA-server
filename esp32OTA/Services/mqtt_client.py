@@ -603,12 +603,12 @@ class MQTTClientService:
         topic = f"ZV/DEVICES/{device_id}/firmware"
         try:
             payload = json.dumps(firmware_data)
-            self.client.publish(topic, payload, qos=1, retain=True)
+            self.client.publish(topic, payload, qos=1)
             logger.info(f"[MQTT] Published firmware update to {topic}: {payload}")
         except Exception as e:
             logger.error(f"[MQTT] Failed to publish firmware update to {topic}: {str(e)}")
 
-    def publish(self, topic, message, qos=1, retain=True):
+    def publish(self, topic, message, qos=1):
         """
         Publishes a message to a specific topic.
         """
@@ -618,8 +618,8 @@ class MQTTClientService:
             else:
                 payload = str(message)
 
-            self.client.publish(topic, payload, qos=qos, retain=retain)
-            logger.info(f"[MQTT] Published to {topic}: {payload} (qos={qos}, retain={retain})")
+            self.client.publish(topic, payload, qos=qos)
+            logger.info(f"[MQTT] Published to {topic}: {payload}")
             return True
         except Exception as e:
             logger.error(f"[MQTT] Failed to publish to {topic}: {str(e)}")

@@ -188,7 +188,7 @@ class GatewayService:
                         status_changed = False
                     
                     if status_changed:
-                        topic = f"ZV/DEVICES/{device.device_id}/ping"
+                        topic = f"ZV/DEVICES/{device.device_id}/orkoping"
                         
                         # Optimized payload as per user request: timestamp -> t
                         payload = json.dumps({
