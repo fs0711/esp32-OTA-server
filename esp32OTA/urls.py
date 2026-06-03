@@ -22,6 +22,7 @@ from esp32OTA.FirmwareManagement.views.firmware import firmware_bp
 from esp32OTA.GatewayLogging.views.gateway_logging import gateway_logging_bp
 from esp32OTA.APITokenManagement.views.apitokens import api_token_bp
 from esp32OTA.UsageLogging.views.usage_logging import usage_logging_bp
+from esp32OTA.PingLogging.views.ping_logging import ping_logging_bp
 
 
 @app.route("/api/static-data", methods=["GET"])
@@ -326,3 +327,4 @@ app.register_blueprint(firmware_bp, url_prefix="/api/firmware")
 app.register_blueprint(gateway_logging_bp, url_prefix="/api/gateway-logging")
 app.register_blueprint(api_token_bp, url_prefix="/api/api-tokens")
 app.register_blueprint(usage_logging_bp, url_prefix="/api/usage-logging")
+app.register_blueprint(ping_logging_bp, url_prefix="/api/ping-logging")

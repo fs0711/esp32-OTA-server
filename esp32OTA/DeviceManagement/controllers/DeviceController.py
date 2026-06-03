@@ -8,6 +8,7 @@ from ast import Constant
 from esp32OTA.generic.controllers import Controller
 from esp32OTA.DeviceManagement.models.Device import Device
 from esp32OTA.DeviceManagement.models.DeviceType import DeviceType
+from esp32OTA.PingLogging.controllers.PingLoggingController import PingLoggingController
 from esp32OTA.UserManagement.controllers.TokenController import TokenController
 from esp32OTA.UserManagement.controllers.UserController import UserController
 from esp32OTA.generic.services.utils import constants, response_codes, response_utils, common_utils, __global__
@@ -383,6 +384,16 @@ class DeviceController(Controller):
         mapped_s = []
         
         for item in incoming_s:
+            # Log the ping data
+            ping_log_data = {
+                constants.PING_LOGGING__DEVICE_ID: str(device.device_id),
+                constants.PING_LOGGING__STATUS: item.get("status"),
+                constants.PING_LOGGING__SESSION_ID: item.get("session_id"),
+                constants.PING_LOGGING__BOX_OPEN_REQUEST: item.get("box_open_request"),
+                constants.PING_LOGGING__CREDIT: item.get("credit")
+            }
+            PingLoggingController.log_ping(ping_log_data)
+
             mapped_item = {
                 "st": item.get("status"),      # status -> st
                 "sid": item.get("session_id"),  # session_id -> sid
