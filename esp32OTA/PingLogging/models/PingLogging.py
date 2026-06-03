@@ -18,7 +18,7 @@ class PingLogging(models.Model):
         return {}
 
     device_id = db.StringField(required=True)
-    status = db.IntField(required=True)
+    socket_status = db.IntField(required=True)
     session_id = db.StringField(required=False, allow_null=True)
     box_open_request = db.BooleanField(required=True)
     credit = db.FloatField(required=True)
@@ -30,7 +30,7 @@ class PingLogging(models.Model):
         return {
             constants.ID: str(self[constants.ID]),
             constants.PING_LOGGING__DEVICE_ID: self.device_id,
-            constants.PING_LOGGING__STATUS: self.status,
+            constants.PING_LOGGING__SOCKET_STATUS: self.socket_status,
             constants.PING_LOGGING__SESSION_ID: self.session_id,
             constants.PING_LOGGING__BOX_OPEN_REQUEST: self.box_open_request,
             constants.PING_LOGGING__CREDIT: self.credit

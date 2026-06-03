@@ -387,7 +387,7 @@ class DeviceController(Controller):
             # Log the ping data
             ping_log_data = {
                 constants.PING_LOGGING__DEVICE_ID: str(device.device_id),
-                constants.PING_LOGGING__STATUS: item.get("status"),
+                constants.PING_LOGGING__SOCKET_STATUS: item.get("status"),
                 constants.PING_LOGGING__SESSION_ID: item.get("session_id"),
                 constants.PING_LOGGING__BOX_OPEN_REQUEST: item.get("box_open_request"),
                 constants.PING_LOGGING__CREDIT: item.get("credit")
