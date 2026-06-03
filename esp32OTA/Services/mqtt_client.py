@@ -188,14 +188,13 @@ class MQTTClientService:
                     signal_mapped = signal_raw
 
                 # Handle error field 'e': could be string "E2", list ["E2"], or 0/null
-                # "E0", 0, null are considered "no error"
                 e_raw = item.get("e")
-                e_mapped = []
-                if e_raw and e_raw != 0 and e_raw != "E0":
-                    if isinstance(e_raw, list):
-                        e_mapped = [str(x) for x in e_raw if x and x != 0 and x != "E0"]
-                    else:
-                        e_mapped = [str(e_raw)]
+                if isinstance(e_raw, list):
+                    e_mapped = [str(x) for x in e_raw]
+                elif e_raw is not None:
+                    e_mapped = [str(e_raw)]
+                else:
+                    e_mapped = []
 
                 mapped_s.append({
                     "id": item.get("id"),
@@ -206,12 +205,12 @@ class MQTTClientService:
             
             # Root error field: normalize to list, default to empty
             root_errors_raw = raw_data.get("e")
-            root_errors = []
-            if root_errors_raw and root_errors_raw != 0 and root_errors_raw != "E0":
-                if isinstance(root_errors_raw, list):
-                    root_errors = [str(x) for x in root_errors_raw if x and x != 0 and x != "E0"]
-                else:
-                    root_errors = [str(root_errors_raw)]
+            if isinstance(root_errors_raw, list):
+                root_errors = [str(x) for x in root_errors_raw]
+            elif root_errors_raw is not None:
+                root_errors = [str(root_errors_raw)]
+            else:
+                root_errors = []
             
             payload = {
                 "c_s_id": int(client_id) if str(client_id).isdigit() else client_id,
@@ -228,13 +227,11 @@ class MQTTClientService:
             
             logger.info(f"[MQTT] -> API Payload: {json.dumps(payload)}")
 
-            # Save to database log ONLY if 'e' contains actual error values (not empty or 0)
-            has_errors = any(item.get("e") for item in mapped_s) or bool(root_errors)
-            if has_errors:
-                from esp32OTA.GatewayLogging.controllers.GatewayLoggingController import GatewayLoggingController
-                from esp32OTA import app
-                with app.app_context():
-                    GatewayLoggingController.log_gateway_activity(json.dumps(payload), "sent", device_id)
+            # Save to database log
+            from esp32OTA.GatewayLogging.controllers.GatewayLoggingController import GatewayLoggingController
+            from esp32OTA import app
+            with app.app_context():
+                GatewayLoggingController.log_gateway_activity(json.dumps(payload), "sent", device_id)
 
             response = requests.post(api_url, json=payload, headers=headers, timeout=5)
             logger.info(f"[MQTT] Forwarded {device_id} status to API. Status: {response.status_code}")
