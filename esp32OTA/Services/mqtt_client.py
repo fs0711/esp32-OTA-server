@@ -50,6 +50,7 @@ class MQTTClientService:
             client.subscribe("$SYS/broker/#", qos=1)
             client.subscribe("ZV/DEVICES/+/status/#", qos=1)
             client.subscribe("ZV/DEVICES/+/usage/#", qos=1)
+            client.subscribe("ZV/DEVICES/+/ping", qos=1)
             client.subscribe("ZV/DEVICES/+/command", qos=1)
             client.subscribe("ZV/DEVICES/+/send_config", qos=1)
             client.subscribe("ZV/DEVICES/+/configuration", qos=1)
@@ -102,6 +103,14 @@ class MQTTClientService:
                         self.handle_device_usage(device_id, data)
                     except json.JSONDecodeError:
                         logger.error(f"[MQTT] Failed to decode usage payload for {device_id}")
+                elif len(topic_parts) >= 3 and "ping" in topic:
+                    device_id = topic_parts[2]
+                    try:
+                        data = json.loads(payload_str)
+                        logger.info(f"[MQTT] Ping received from {device_id}: {payload_str}")
+                        self.handle_ping(device_id, data)
+                    except json.JSONDecodeError:
+                        logger.error(f"[MQTT] Failed to decode ping payload for {device_id}")
                 
                 # Check for config request (send_config = 1) in JSON payload
                 if len(topic_parts) >= 3:
@@ -138,6 +147,34 @@ class MQTTClientService:
         except Exception as e:
             logger.error(f"[MQTT] Error in on_message: {str(e)}")
 
+    def handle_ping(self, device_id, data):
+        """
+        Handles ping from device.
+        Updates last_updated and status online in connection of device.
+        """
+        try:
+            # Primary lookup
+            device = Device.objects(device_id=str(device_id)).first()
+
+            if not device:
+                for d in Device.objects.only('device_id', 'connection'):
+                    if str(d.device_id) == str(device_id):
+                        device = d
+                        break
+
+            if not device:
+                return
+
+            timestamp = data.get("t")
+            if timestamp:
+                last_updated = common_utils.epoch_to_datetime(timestamp * 1000)
+                Device.objects(id=device.id).update_one(
+                    **{f"set__{constants.DEVICE__CONNECTION}": {"last_updated": last_updated, "status": "online"}}
+                )
+                logger.info(f"[MQTT] Ping status updated for {device_id}: online at {last_updated}")
+        except Exception as e:
+            logger.error(f"[MQTT] Error handling ping for {device_id}: {str(e)}", exc_info=True)
+
     def handle_device_status(self, device_id, raw_data):
         """
         Processes incoming device status, finds client_id (c_s_id),
@@ -155,12 +192,6 @@ class MQTTClientService:
 
             if not device:
                 return
-
-            server_timestamp = common_utils.get_time_iso()
-            last_updated = common_utils.epoch_to_datetime(server_timestamp * 1000)
-            Device.objects(id=device.id).update_one(
-                **{f"set__{constants.DEVICE__CONNECTION}": {"last_updated": last_updated, "status": "online"}}
-            )
 
             client_id = getattr(device, 'client_id', None)
             if not client_id:
