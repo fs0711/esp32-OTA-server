@@ -22,3 +22,9 @@ gateway_logging_bp = Blueprint("gateway_logging_bp", __name__)
 def log_view(data):
     return GatewayLoggingController.log_controller(data=data)
 
+
+@gateway_logging_bp.route("/read", methods=["GET"])
+@decorators.is_authenticated
+def read_view():
+    return GatewayLoggingController.read_controller()
+

@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZVOLTA - Logs</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #334155;
+        }
+
+        .navbar {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #1e3a8a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .navbar-brand i { color: #0891b2; }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: #475569;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-links a:hover, .nav-links a.active { color: #0891b2; }
+
+        .btn-logout {
+            background: #fee2e2;
+            color: #991b1b;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .btn-logout:hover { background: #fecaca; }
+
+        .container-main {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px 40px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header h1 i { color: #0891b2; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover { color: #1e3a8a; }
+        .tab-btn.active { color: #1e3a8a; border-bottom-color: #1e3a8a; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Filter bar */
+        .filter-bar {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-group label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 0.88rem;
+            color: #334155;
+            background: white;
+            min-width: 160px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus { border-color: #0891b2; }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .btn-search {
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-search:hover { background: #1e40af; }
+
+        .btn-reset {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.88rem;
+            transition: background 0.2s;
+        }
+
+        .btn-reset:hover { background: #e2e8f0; }
+
+        .btn-export {
+            background: #0891b2;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-export:hover { background: #0e7490; }
+
+        /* Table */
+        .table-card {
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .table-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .table-info {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        thead th {
+            background: #f8fafc;
+            padding: 11px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 11px 14px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+            max-width: 280px;
+        }
+
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: #f8fafc; }
+
+        .mono {
+            font-family: 'Courier New', monospace;
+            font-size: 0.82rem;
+            color: #1e293b;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-sent { background: #dbeafe; color: #1d4ed8; }
+        .badge-received { background: #d1fae5; color: #065f46; }
+        .badge-online { background: #d1fae5; color: #065f46; }
+        .badge-offline { background: #fee2e2; color: #991b1b; }
+        .badge-completed { background: #d1fae5; color: #065f46; }
+        .badge-incomplete { background: #fef3c7; color: #92400e; }
+
+        .payload-cell {
+            max-width: 260px;
+            overflow: hidden;
+        }
+
+        .payload-preview {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'Courier New', monospace;
+            font-size: 0.78rem;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        .payload-preview:hover { color: #0891b2; }
+
+        /* Empty & Loading */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        .loading-row td {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #1e3a8a;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-top: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pagination-info { font-size: 0.85rem; color: #64748b; }
+
+        .pagination-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .page-btn {
+            border: 1px solid #cbd5e1;
+            background: white;
+            color: #475569;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .page-btn:hover:not(:disabled) { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .page-btn.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+
+        .page-input {
+            width: 60px;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        /* Modal for payload */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: white;
+            border-radius: 10px;
+            max-width: 640px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: auto;
+            padding: 24px;
+            position: relative;
+        }
+
+        .modal h3 {
+            font-size: 1rem;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        .modal pre {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 14px;
+            font-size: 0.82rem;
+            overflow: auto;
+            max-height: 50vh;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .modal-close:hover { color: #1e293b; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-content">
+        <a class="navbar-brand" href="/gateway">
+            <i class="fas fa-bolt"></i> ZVOLTA
+        </a>
+        <ul class="nav-links">
+            <li><a href="/gateway"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="/logs" class="active"><i class="fas fa-list-alt"></i> Logs</a></li>
+            <li><a href="/api-docs"><i class="fas fa-book"></i> API Docs</a></li>
+            <li><button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container-main">
+    <div class="page-header">
+        <h1><i class="fas fa-list-alt"></i> Logs</h1>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('gateway')">
+            <i class="fas fa-exchange-alt"></i> Gateway Logs
+        </button>
+        <button class="tab-btn" onclick="switchTab('ping')">
+            <i class="fas fa-heartbeat"></i> Ping Logs
+        </button>
+        <button class="tab-btn" onclick="switchTab('usage')">
+            <i class="fas fa-bolt"></i> Usage Logs
+        </button>
+    </div>
+
+    <!-- GATEWAY LOGS -->
+    <div id="tab-gateway" class="tab-content active">
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>Device ID</label>
+                <input type="text" id="gw-device-id" placeholder="e.g. DEV001">
+            </div>
+            <div class="filter-group">
+                <label>Log Type</label>
+                <select id="gw-log-type">
+                    <option value="">All</option>
+                    <option value="sent">Sent</option>
+                    <option value="received">Received</option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-search" onclick="filterGateway()"><i class="fas fa-search"></i> Search</button>
+                <button class="btn-reset" onclick="resetGateway()">Reset</button>
+                <button class="btn-export" onclick="exportCSV('gateway')"><i class="fas fa-download"></i> CSV</button>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-toolbar">
+                <span class="table-info" id="gw-info">Loading...</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Device ID</th>
+                            <th>Log Type</th>
+                            <th>Payload</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gw-tbody">
+                        <tr class="loading-row"><td colspan="4"><span class="spinner"></span>Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination">
+                <span class="pagination-info" id="gw-page-info"></span>
+                <div class="pagination-controls">
+                    <button class="page-btn" id="gw-prev" onclick="gwChangePage(gwPage - 1)" disabled><i class="fas fa-chevron-left"></i></button>
+                    <input class="page-input" id="gw-page-input" type="number" min="1" value="1"
+                        onchange="gwChangePage(parseInt(this.value))">
+                    <button class="page-btn" id="gw-next" onclick="gwChangePage(gwPage + 1)" disabled><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PING LOGS -->
+    <div id="tab-ping" class="tab-content">
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>Device ID</label>
+                <input type="text" id="ping-device-id" placeholder="e.g. DEV001">
+            </div>
+            <div class="filter-group">
+                <label>Socket Status</label>
+                <input type="number" id="ping-socket-status" placeholder="e.g. 1" style="min-width:120px">
+            </div>
+            <div class="filter-actions">
+                <button class="btn-search" onclick="filterPing()"><i class="fas fa-search"></i> Search</button>
+                <button class="btn-reset" onclick="resetPing()">Reset</button>
+                <button class="btn-export" onclick="exportCSV('ping')"><i class="fas fa-download"></i> CSV</button>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-toolbar">
+                <span class="table-info" id="ping-info">-</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Device ID</th>
+                            <th>Socket Status</th>
+                            <th>Session ID</th>
+                            <th>Box Open Req</th>
+                            <th>Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ping-tbody">
+                        <tr class="loading-row"><td colspan="6"><span class="spinner"></span>Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination">
+                <span class="pagination-info" id="ping-page-info"></span>
+                <div class="pagination-controls">
+                    <button class="page-btn" id="ping-prev" onclick="pingChangePage(pingPage - 1)" disabled><i class="fas fa-chevron-left"></i></button>
+                    <input class="page-input" id="ping-page-input" type="number" min="1" value="1"
+                        onchange="pingChangePage(parseInt(this.value))">
+                    <button class="page-btn" id="ping-next" onclick="pingChangePage(pingPage + 1)" disabled><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- USAGE LOGS -->
+    <div id="tab-usage" class="tab-content">
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>Device ID</label>
+                <input type="text" id="usage-device-id" placeholder="e.g. DEV001">
+            </div>
+            <div class="filter-group">
+                <label>Session ID</label>
+                <input type="text" id="usage-session-id" placeholder="Session ID">
+            </div>
+            <div class="filter-group">
+                <label>Socket ID</label>
+                <input type="number" id="usage-socket-id" placeholder="e.g. 1" style="min-width:100px">
+            </div>
+            <div class="filter-group">
+                <label>Is Completed</label>
+                <select id="usage-is-completed">
+                    <option value="">All</option>
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-search" onclick="filterUsage()"><i class="fas fa-search"></i> Search</button>
+                <button class="btn-reset" onclick="resetUsage()">Reset</button>
+                <button class="btn-export" onclick="exportCSV('usage')"><i class="fas fa-download"></i> CSV</button>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-toolbar">
+                <span class="table-info" id="usage-info">-</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Device ID</th>
+                            <th>Timestamp</th>
+                            <th>Socket ID</th>
+                            <th>Session ID</th>
+                            <th>Consumption (Wh)</th>
+                            <th>Current (A)</th>
+                            <th>Voltage (V)</th>
+                            <th>Duration (s)</th>
+                            <th>Completed</th>
+                            <th>Auto</th>
+                            <th>Resp Code</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usage-tbody">
+                        <tr class="loading-row"><td colspan="12"><span class="spinner"></span>Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination">
+                <span class="pagination-info" id="usage-page-info"></span>
+                <div class="pagination-controls">
+                    <button class="page-btn" id="usage-prev" onclick="usageChangePage(usagePage - 1)" disabled><i class="fas fa-chevron-left"></i></button>
+                    <input class="page-input" id="usage-page-input" type="number" min="1" value="1"
+                        onchange="usageChangePage(parseInt(this.value))">
+                    <button class="page-btn" id="usage-next" onclick="usageChangePage(usagePage + 1)" disabled><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payload Modal -->
+<div class="modal-overlay" id="payload-modal" onclick="closeModal(event)">
+    <div class="modal">
+        <button class="modal-close" onclick="document.getElementById('payload-modal').classList.remove('open')">
+            <i class="fas fa-times"></i>
+        </button>
+        <h3><i class="fas fa-code"></i> Payload</h3>
+        <pre id="payload-content"></pre>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem('access_token');
+    if (!token) window.location.href = '/';
+
+    function logout() {
+        localStorage.removeItem('access_token');
+        window.location.href = '/';
+    }
+
+    function switchTab(name) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        event.currentTarget.classList.add('active');
+
+        if (name === 'gateway' && !gwRaw.length) loadGateway();
+        if (name === 'ping' && !pingRaw.length) loadPing();
+        if (name === 'usage' && !usageRaw.length) loadUsage();
+    }
+
+    // ── shared helpers ──────────────────────────────────────────────────────
+    const PAGE_SIZE = 50;
+
+    async function apiFetch(url) {
+        const res = await fetch(url, {
+            headers: { 'x-session-key': token, 'x-session-type': 'web' }
+        });
+        return res.json();
+    }
+
+    function shortId(id) {
+        return id ? `<span class="mono" title="${id}">${String(id).slice(-8)}</span>` : '-';
+    }
+
+    function renderPagination(prefix, allRecords, page) {
+        const total = allRecords.length;
+        const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+        const to = Math.min(page * PAGE_SIZE, total);
+        document.getElementById(prefix + '-page-info').textContent =
+            total === 0 ? 'No records' : `Showing ${from}–${to} of ${total} records`;
+        document.getElementById(prefix + '-info').textContent =
+            `${total} record${total !== 1 ? 's' : ''}`;
+        document.getElementById(prefix + '-prev').disabled = page <= 1;
+        document.getElementById(prefix + '-next').disabled = page >= pages;
+        document.getElementById(prefix + '-page-input').value = page;
+        document.getElementById(prefix + '-page-input').max = pages;
+    }
+
+    function pageSlice(allRecords, page) {
+        return allRecords.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    }
+
+    function emptyRow(cols) {
+        return `<tr><td colspan="${cols}" class="empty-state">
+            <i class="fas fa-inbox"></i><br>No records found
+        </td></tr>`;
+    }
+
+    function errorRow(cols, msg) {
+        return `<tr><td colspan="${cols}" class="empty-state">
+            <i class="fas fa-exclamation-circle" style="color:#dc2626"></i><br>${msg || 'Failed to load data'}
+        </td></tr>`;
+    }
+
+    function showPayload(json) {
+        document.getElementById('payload-content').textContent =
+            JSON.stringify(json, null, 2);
+        document.getElementById('payload-modal').classList.add('open');
+    }
+
+    function closeModal(e) {
+        if (e.target.id === 'payload-modal')
+            document.getElementById('payload-modal').classList.remove('open');
+    }
+
+    // ── Gateway Logs ────────────────────────────────────────────────────────
+    let gwRaw = [], gwFiltered = [], gwPage = 1;
+
+    function filterGateway() {
+        const deviceId = document.getElementById('gw-device-id').value.trim().toLowerCase();
+        const logType = document.getElementById('gw-log-type').value;
+        gwFiltered = gwRaw.filter(r =>
+            (!deviceId || (r.device_id || '').toLowerCase().includes(deviceId)) &&
+            (!logType || r.log_type === logType)
+        );
+        gwPage = 1;
+        renderGateway();
+    }
+
+    function renderGateway() {
+        const slice = pageSlice(gwFiltered, gwPage);
+        renderPagination('gw', gwFiltered, gwPage);
+        if (!slice.length) { document.getElementById('gw-tbody').innerHTML = emptyRow(4); return; }
+        document.getElementById('gw-tbody').innerHTML = slice.map(r => {
+            const p = JSON.stringify(r.payload || {});
+            return `<tr>
+                <td>${shortId(r.id)}</td>
+                <td><span class="mono">${r.device_id || '-'}</span></td>
+                <td><span class="badge ${r.log_type === 'sent' ? 'badge-sent' : 'badge-received'}">${r.log_type || '-'}</span></td>
+                <td class="payload-cell">
+                    <span class="payload-preview" onclick='showPayload(${p.replace(/'/g, "&#39;")})'>${p.slice(0, 80)}${p.length > 80 ? '…' : ''}</span>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function loadGateway() {
+        document.getElementById('gw-tbody').innerHTML =
+            `<tr class="loading-row"><td colspan="4"><span class="spinner"></span>Loading...</td></tr>`;
+        try {
+            const data = await apiFetch('/api/gateway-logging/read');
+            gwRaw = data.response_data || [];
+            gwFiltered = gwRaw;
+            gwPage = 1;
+            renderGateway();
+        } catch (e) {
+            document.getElementById('gw-tbody').innerHTML = errorRow(4, e.message);
+            document.getElementById('gw-info').textContent = 'Error: ' + e.message;
+        }
+    }
+
+    function gwChangePage(p) { gwPage = p; renderGateway(); }
+    function resetGateway() {
+        document.getElementById('gw-device-id').value = '';
+        document.getElementById('gw-log-type').value = '';
+        gwFiltered = gwRaw; gwPage = 1; renderGateway();
+    }
+
+    // ── Ping Logs ────────────────────────────────────────────────────────────
+    let pingRaw = [], pingFiltered = [], pingPage = 1;
+
+    function filterPing() {
+        const deviceId = document.getElementById('ping-device-id').value.trim().toLowerCase();
+        const socketStatus = document.getElementById('ping-socket-status').value.trim();
+        pingFiltered = pingRaw.filter(r =>
+            (!deviceId || (r.device_id || '').toLowerCase().includes(deviceId)) &&
+            (!socketStatus || String(r.socket_status) === socketStatus)
+        );
+        pingPage = 1;
+        renderPing();
+    }
+
+    function renderPing() {
+        const slice = pageSlice(pingFiltered, pingPage);
+        renderPagination('ping', pingFiltered, pingPage);
+        if (!slice.length) { document.getElementById('ping-tbody').innerHTML = emptyRow(6); return; }
+        document.getElementById('ping-tbody').innerHTML = slice.map(r => `<tr>
+            <td>${shortId(r.id)}</td>
+            <td><span class="mono">${r.device_id || '-'}</span></td>
+            <td>${r.socket_status !== undefined ? r.socket_status : '-'}</td>
+            <td><span class="mono">${r.session_id || '-'}</span></td>
+            <td>${r.box_open_request ? '<span class="badge badge-received">Yes</span>' : '<span class="badge badge-offline">No</span>'}</td>
+            <td>${r.credit !== undefined ? r.credit : '-'}</td>
+        </tr>`).join('');
+    }
+
+    async function loadPing() {
+        document.getElementById('ping-tbody').innerHTML =
+            `<tr class="loading-row"><td colspan="6"><span class="spinner"></span>Loading...</td></tr>`;
+        try {
+            const data = await apiFetch('/api/ping-logging/read');
+            pingRaw = data.response_data || [];
+            pingFiltered = pingRaw;
+            pingPage = 1;
+            renderPing();
+        } catch (e) {
+            document.getElementById('ping-tbody').innerHTML = errorRow(6, e.message);
+            document.getElementById('ping-info').textContent = 'Error: ' + e.message;
+        }
+    }
+
+    function pingChangePage(p) { pingPage = p; renderPing(); }
+    function resetPing() {
+        document.getElementById('ping-device-id').value = '';
+        document.getElementById('ping-socket-status').value = '';
+        pingFiltered = pingRaw; pingPage = 1; renderPing();
+    }
+
+    // ── Usage Logs ───────────────────────────────────────────────────────────
+    let usageRaw = [], usageFiltered = [], usagePage = 1;
+
+    function filterUsage() {
+        const deviceId = document.getElementById('usage-device-id').value.trim().toLowerCase();
+        const sessionId = document.getElementById('usage-session-id').value.trim().toLowerCase();
+        const socketId = document.getElementById('usage-socket-id').value.trim();
+        const isCompleted = document.getElementById('usage-is-completed').value;
+        usageFiltered = usageRaw.filter(r =>
+            (!deviceId || (r.device_id || '').toLowerCase().includes(deviceId)) &&
+            (!sessionId || (r.session_id || '').toLowerCase().includes(sessionId)) &&
+            (!socketId || String(r.socket_id) === socketId) &&
+            (!isCompleted || String(r.is_completed) === isCompleted)
+        );
+        usagePage = 1;
+        renderUsage();
+    }
+
+    function renderUsage() {
+        const slice = pageSlice(usageFiltered, usagePage);
+        renderPagination('usage', usageFiltered, usagePage);
+        if (!slice.length) { document.getElementById('usage-tbody').innerHTML = emptyRow(12); return; }
+        document.getElementById('usage-tbody').innerHTML = slice.map(r => `<tr>
+            <td>${shortId(r.id)}</td>
+            <td><span class="mono">${r.device_id || '-'}</span></td>
+            <td><span class="mono" style="font-size:0.8rem">${r.timestamp || '-'}</span></td>
+            <td>${r.socket_id !== undefined ? r.socket_id : '-'}</td>
+            <td><span class="mono">${r.session_id || '-'}</span></td>
+            <td>${r.consumption !== undefined ? Number(r.consumption).toFixed(3) : '-'}</td>
+            <td>${r.current !== undefined ? Number(r.current).toFixed(3) : '-'}</td>
+            <td>${r.voltage !== undefined ? r.voltage : '-'}</td>
+            <td>${r.duration !== undefined ? r.duration : '-'}</td>
+            <td>${r.is_completed ? '<span class="badge badge-completed">Yes</span>' : '<span class="badge badge-incomplete">No</span>'}</td>
+            <td>${r.auto_completion ? 'Yes' : 'No'}</td>
+            <td>${r.response_code !== undefined && r.response_code !== null ? r.response_code : '-'}</td>
+        </tr>`).join('');
+    }
+
+    async function loadUsage() {
+        document.getElementById('usage-tbody').innerHTML =
+            `<tr class="loading-row"><td colspan="12"><span class="spinner"></span>Loading...</td></tr>`;
+        try {
+            const data = await apiFetch('/api/usage-logging/read');
+            usageRaw = data.response_data || [];
+            usageFiltered = usageRaw;
+            usagePage = 1;
+            renderUsage();
+        } catch (e) {
+            document.getElementById('usage-tbody').innerHTML = errorRow(12, e.message);
+            document.getElementById('usage-info').textContent = 'Error: ' + e.message;
+        }
+    }
+
+    function usageChangePage(p) { usagePage = p; renderUsage(); }
+    function resetUsage() {
+        document.getElementById('usage-device-id').value = '';
+        document.getElementById('usage-session-id').value = '';
+        document.getElementById('usage-socket-id').value = '';
+        document.getElementById('usage-is-completed').value = '';
+        usageFiltered = usageRaw; usagePage = 1; renderUsage();
+    }
+
+    // ── CSV Export ───────────────────────────────────────────────────────────
+    function exportCSV(type) {
+        let records, headers, row;
+        if (type === 'gateway') {
+            records = gwFiltered;
+            headers = ['ID', 'Device ID', 'Log Type', 'Payload'];
+            row = r => [r.id, r.device_id, r.log_type, JSON.stringify(r.payload)];
+        } else if (type === 'ping') {
+            records = pingFiltered;
+            headers = ['ID', 'Device ID', 'Socket Status', 'Session ID', 'Box Open Request', 'Credit'];
+            row = r => [r.id, r.device_id, r.socket_status, r.session_id, r.box_open_request, r.credit];
+        } else {
+            records = usageFiltered;
+            headers = ['ID', 'Device ID', 'Timestamp', 'Socket ID', 'Session ID',
+                       'Consumption', 'Current', 'Voltage', 'Duration', 'Is Completed', 'Auto Completion', 'Response Code'];
+            row = r => [r.id, r.device_id, r.timestamp, r.socket_id, r.session_id,
+                        r.consumption, r.current, r.voltage, r.duration, r.is_completed, r.auto_completion, r.response_code];
+        }
+
+        if (!records.length) { alert('No data to export.'); return; }
+
+        const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+        const csv = [headers.map(escape).join(',')]
+            .concat(records.map(r => row(r).map(escape).join(',')))
+            .join('\n');
+
+        const a = document.createElement('a');
+        a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+        a.download = `${type}_logs.csv`;
+        a.click();
+    }
+
+    // Load gateway on page open
+    loadGateway();
+</script>
+</body>
+</html>

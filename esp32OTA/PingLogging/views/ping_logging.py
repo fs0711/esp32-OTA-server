@@ -23,3 +23,9 @@ def log_ping_view(data):
         response_message=response_codes.MESSAGE_SUCCESS,
         response_data=obj.display() if obj else {}
     )
+
+
+@ping_logging_bp.route("/read", methods=["GET"])
+@decorators.is_authenticated
+def read_ping_view():
+    return PingLoggingController.read_controller()

@@ -466,6 +466,39 @@ class MQTTClientService:
                     }
 
                     self.publish(f"ZV/DEVICES/{device_id}/auto_completion", mqtt_log)
+
+                    # After auto-completion, send socket status update to Orko
+                    try:
+                        device = Device.objects(device_id=str(device_id)).first()
+                        if not device:
+                            for d in Device.objects.only('device_id', 'client_id'):
+                                if str(d.device_id) == str(device_id):
+                                    device = d
+                                    break
+
+                        client_id = getattr(device, 'client_id', None) if device else None
+                        if client_id:
+                            status_payload = {
+                                "c_s_id": int(client_id) if str(client_id).isdigit() else client_id,
+                                "s": [
+                                    {
+                                        "id": 1,
+                                        "status": 0,
+                                        "signal_type": "wifi",
+                                        "e": ["E0"]
+                                    }
+                                ],
+                                "e": []
+                            }
+                            status_url = f"{base_url}/api/v2/power-sockets/status"
+                            logger.info(f"[MQTT] Sending post-autocomplete status for {device_id}: {json.dumps(status_payload)}")
+                            status_response = requests.post(status_url, json=status_payload, headers=headers, timeout=5)
+                            logger.info(f"[MQTT] Post-autocomplete status response for {device_id}: {status_response.status_code}")
+                        else:
+                            logger.warning(f"[MQTT] Could not find client_id for {device_id}, skipping post-autocomplete status")
+                    except Exception as status_err:
+                        logger.error(f"[MQTT] Failed to send post-autocomplete status for {device_id}: {str(status_err)}")
+
                     del self.last_incomplete_usage[device_id]
 
         except Exception as e:
@@ -558,7 +591,11 @@ class MQTTClientService:
         Queries device and its assigned firmware, then publishes details back to MQTT.
         """
         try:
-            if str(value) != "1":
+            try:
+                data = json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                data = {}
+            if data.get("getfirmware") != 1:
                 return
                 
             # Primary lookup

@@ -1,8 +1,5 @@
 # Python imports
 
-# Framework imports
-from flask import Response
-
 # Local imports
 from esp32OTA.generic.controllers import Controller
 from esp32OTA.UsageLogging.models.UsageLogging import UsageLogging
@@ -27,9 +24,19 @@ class UsageLoggingController(Controller):
         """
         Updates an existing usage log entry.
         """
-        success, message, obj = cls.db_update_single_record(
+        _, _, obj = cls.db_update_single_record(
             read_filter={constants.ID: log_id},
             update_filter=data,
             update_mode=constants.UPDATE_MODE__PARTIAL
         )
         return obj
+
+    @classmethod
+    def read_controller(cls):
+        return response_utils.get_response_object(
+            response_code=response_codes.CODE_SUCCESS,
+            response_message=response_codes.MESSAGE_SUCCESS,
+            response_data=[
+                obj.display() for obj in cls.db_read_records(read_filter={}, deleted_records=True)
+            ]
+        )

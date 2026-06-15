@@ -23,3 +23,9 @@ def log_usage_view(data):
         response_message=response_codes.MESSAGE_SUCCESS,
         response_data=obj.display() if obj else {}
     )
+
+
+@usage_logging_bp.route("/read", methods=["GET"])
+@decorators.is_authenticated
+def read_usage_view():
+    return UsageLoggingController.read_controller()
