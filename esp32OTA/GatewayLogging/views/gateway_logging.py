@@ -24,7 +24,6 @@ def log_view(data):
 
 
 @gateway_logging_bp.route("/read", methods=["GET"])
-@decorators.is_authenticated
 def read_view():
     return GatewayLoggingController.read_controller()
 

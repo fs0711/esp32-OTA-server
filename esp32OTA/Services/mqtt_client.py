@@ -494,6 +494,20 @@ class MQTTClientService:
                             logger.info(f"[MQTT] Sending post-autocomplete status for {device_id}: {json.dumps(status_payload)}")
                             status_response = requests.post(status_url, json=status_payload, headers=headers, timeout=5)
                             logger.info(f"[MQTT] Post-autocomplete status response for {device_id}: {status_response.status_code}")
+                            try:
+                                status_response_data = status_response.json()
+                            except Exception:
+                                status_response_data = {"raw_response": status_response.text}
+
+                            mqtt_status_log = {
+                                "event": "post_autocomplete_status",
+                                "request": {
+                                    "url": status_url,
+                                    "payload": status_payload
+                                },
+                                "response": status_response_data
+                            }
+                            self.publish(f"ZV/DEVICES/{device_id}/auto_completion_status", mqtt_status_log)
                         else:
                             logger.warning(f"[MQTT] Could not find client_id for {device_id}, skipping post-autocomplete status")
                     except Exception as status_err:

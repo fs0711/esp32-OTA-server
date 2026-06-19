@@ -26,6 +26,5 @@ def log_ping_view(data):
 
 
 @ping_logging_bp.route("/read", methods=["GET"])
-@decorators.is_authenticated
 def read_ping_view():
     return PingLoggingController.read_controller()

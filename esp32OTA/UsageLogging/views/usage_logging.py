@@ -26,6 +26,5 @@ def log_usage_view(data):
 
 
 @usage_logging_bp.route("/read", methods=["GET"])
-@decorators.is_authenticated
 def read_usage_view():
     return UsageLoggingController.read_controller()
