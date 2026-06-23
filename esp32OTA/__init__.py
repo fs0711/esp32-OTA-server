@@ -82,6 +82,10 @@ app.config.update(config.MAIL_SETTINGS)
 mail = Mail(app)
 register_scripts()
 
+# Start Redis client
+from esp32OTA.Services.redis_client import redis_client
+redis_client.connect()
+
 # Start MQTT client
 from esp32OTA.Services.mqtt_client import mqtt_service
 mqtt_service.start()

@@ -144,6 +144,18 @@ class MQTTClientService:
                     device_id = topic_parts[2]
                     logger.info(f"[MQTT] getfirmware topic request received from {device_id}")
                     self.handle_firmware_request(device_id, payload_str)
+            # Store non-$SYS messages in Redis history (does not affect existing flows)
+            if not topic.startswith("$SYS/"):
+                try:
+                    from esp32OTA.Services.redis_client import redis_client
+                    redis_client.push_message({
+                        "topic": topic,
+                        "payload": payload_str,
+                        "qos": message.qos,
+                        "retain": bool(message.retain)
+                    })
+                except Exception as redis_exc:
+                    logger.warning(f"[REDIS] Failed to store message for topic '{topic}': {redis_exc}")
         except Exception as e:
             logger.error(f"[MQTT] Error in on_message: {str(e)}")
 

@@ -40,6 +40,11 @@ FILTER_DATETIME_FORMAT = "%d %m %Y %H:%M:%S"
 TIME_ZONE = "Asia/Karachi"
 
 FRONTEND_URL = "https://ota.zvolta.com"
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
+REDIS_DB = int(os.environ.get("REDIS_DB", 0))
+TOPIC_HISTORY_LENGTH = int(os.environ.get("TOPIC_HISTORY_LENGTH", 30))
 MQTT_BROKER_HOST = "127.0.0.1"
 MQTT_BROKER_PORT = 1884
 ORKOFLEET_BASE_URL = "https://smartswitch.orkofleet.com"
