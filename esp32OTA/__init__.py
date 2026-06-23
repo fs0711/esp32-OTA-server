@@ -82,6 +82,10 @@ app.config.update(config.MAIL_SETTINGS)
 mail = Mail(app)
 register_scripts()
 
+# Start MQTT client
+from esp32OTA.Services.mqtt_client import mqtt_service
+mqtt_service.start()
+
 # Initialize scheduler for background tasks (only in designated worker)
 import os
 from esp32OTA.scheduler import init_scheduler, scheduler

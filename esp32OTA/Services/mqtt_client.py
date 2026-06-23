@@ -47,7 +47,7 @@ class MQTTClientService:
             self.connected = True
             logger.info("[MQTT] Connected successfully")
             # Subscribe to stats and device topics
-            client.subscribe("$SYS/broker/#", qos=1)
+            client.subscribe("$SYS/broker/#", qos=0)
             client.subscribe("ZV/DEVICES/+/status/#", qos=1)
             client.subscribe("ZV/DEVICES/+/usage/#", qos=1)
             client.subscribe("ZV/DEVICES/+/ping", qos=1)

@@ -62,7 +62,7 @@ def gateway_data():
         devices = []
         for device in db_devices:
             connection = device.connection or {}
-            last_update = connection.get('last_update', '')
+            last_update = connection.get('last_updated', '')
             device_status = connection.get('status', 'offline')
             
             # Use created_on as fallback if last_update is empty
@@ -364,18 +364,18 @@ def get_mqtt_broker_logs():
                     'message': f"Stored Messages: {broker_stats['messages/stored']}"
                 })
             
-            if 'messages/received/total' in broker_stats:
+            if 'messages/received' in broker_stats:
                 logs.append({
                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     'level': 'INFO',
-                    'message': f"Total Messages Received: {broker_stats['messages/received/total']}"
+                    'message': f"Total Messages Received: {broker_stats['messages/received']}"
                 })
-            
-            if 'messages/sent/total' in broker_stats:
+
+            if 'messages/sent' in broker_stats:
                 logs.append({
                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     'level': 'INFO',
-                    'message': f"Total Messages Sent: {broker_stats['messages/sent/total']}"
+                    'message': f"Total Messages Sent: {broker_stats['messages/sent']}"
                 })
             
             # Add publish stats
