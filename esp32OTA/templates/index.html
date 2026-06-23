@@ -721,14 +721,8 @@
                     tbody.innerHTML = data.devices.map(device => {
                         let lastSeenText = 'Never';
                         if (device.last_seen) {
-                            try {
-                                const date = new Date(device.last_seen);
-                                if (!isNaN(date.getTime())) {
-                                    lastSeenText = date.toLocaleString();
-                                }
-                            } catch (e) {
-                                lastSeenText = 'Invalid Date';
-                            }
+                            const date = new Date(device.last_seen);
+                            lastSeenText = !isNaN(date.getTime()) ? date.toLocaleString() : device.last_seen;
                         }
                         return `
                         <tr>
