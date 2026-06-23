@@ -91,17 +91,31 @@ def gateway_data():
 
             # Normalise last_update to ISO string regardless of how it was stored
             if last_update:
+                from datetime import datetime as _dt, timezone as _tz
                 if hasattr(last_update, 'isoformat'):
-                    last_update = last_update.isoformat()
+                    # Already a datetime object
+                    if last_update.tzinfo is None:
+                        last_update = last_update.replace(tzinfo=_tz.utc).isoformat()
+                    else:
+                        last_update = last_update.isoformat()
                 else:
                     try:
+                        # Try epoch integer (seconds or milliseconds)
                         v = int(last_update)
                         if v > 1e10:  # milliseconds → seconds
                             v = v / 1000
-                        from datetime import datetime as _dt, timezone as _tz
                         last_update = _dt.fromtimestamp(v, tz=_tz.utc).isoformat()
-                    except (ValueError, TypeError, OSError):
-                        last_update = str(last_update)
+                    except (ValueError, TypeError):
+                        # Try DD-MM-YYYY HH:MM:SS (DISPLAY_DATETIME_FORMAT stored by epoch_to_datetime)
+                        raw = str(last_update).strip()
+                        parsed = None
+                        for fmt in ("%d-%m-%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+                            try:
+                                parsed = _dt.strptime(raw, fmt).replace(tzinfo=_tz.utc)
+                                break
+                            except ValueError:
+                                continue
+                        last_update = parsed.isoformat() if parsed else raw
 
             # Use created_on as fallback if last_update is empty
             if not last_update and device.created_on:
