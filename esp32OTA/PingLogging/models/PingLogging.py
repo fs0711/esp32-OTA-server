@@ -33,7 +33,9 @@ class PingLogging(models.Model):
             constants.PING_LOGGING__SOCKET_STATUS: self.socket_status,
             constants.PING_LOGGING__SESSION_ID: self.session_id,
             constants.PING_LOGGING__BOX_OPEN_REQUEST: self.box_open_request,
-            constants.PING_LOGGING__CREDIT: self.credit
+            constants.PING_LOGGING__CREDIT: self.credit,
+            constants.CREATED_ON: self.created_on,
+            constants.UPDATED_ON: self.updated_on
         }
 
     def display_min(self):

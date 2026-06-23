@@ -33,7 +33,9 @@ class GatewayLogging(models.Model):
             constants.ID: str(self[constants.ID]),
             "payload": self.payload,
             "log_type": self.log_type,
-            "device_id": self.device_id
+            "device_id": self.device_id,
+            constants.CREATED_ON: self.created_on,
+            constants.UPDATED_ON: self.updated_on
         }
 
     def display_min(self):

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZVOLTA - App Logs</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #cbd5e1;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active { color: #38bdf8; }
+
+        .btn-logout {
+            background: #450a0a;
+            color: #fca5a5;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .btn-logout:hover { background: #7f1d1d; }
+
+        /* ── main layout ─────────────────────────────────────── */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-title i { color: #38bdf8; }
+
+        /* ── toolbar ─────────────────────────────────────────── */
+        .toolbar {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 14px;
+        }
+
+        .ctrl-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ctrl-group label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ctrl-group input,
+        .ctrl-group select {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            min-width: 150px;
+            outline: none;
+        }
+
+        .ctrl-group input:focus,
+        .ctrl-group select:focus { border-color: #38bdf8; }
+
+        .ctrl-group input::placeholder { color: #475569; }
+
+        /* level filter buttons */
+        .level-btns {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .lvl-btn {
+            padding: 6px 12px;
+            border-radius: 5px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            letter-spacing: 0.3px;
+        }
+
+        .lvl-btn:hover { opacity: 0.85; }
+        .lvl-btn.active-all    { background: #1e40af; color: #bfdbfe; border-color: #3b82f6; }
+        .lvl-btn.active-error  { background: #7f1d1d; color: #fca5a5; border-color: #ef4444; }
+        .lvl-btn.active-warn   { background: #78350f; color: #fde68a; border-color: #f59e0b; }
+        .lvl-btn.active-info   { background: #164e63; color: #a5f3fc; border-color: #22d3ee; }
+        .lvl-btn.active-debug  { background: #1e1b4b; color: #c4b5fd; border-color: #8b5cf6; }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .btn {
+            padding: 7px 14px;
+            border-radius: 6px;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.15s;
+        }
+
+        .btn:hover { opacity: 0.85; }
+        .btn-primary  { background: #1e40af; color: #bfdbfe; }
+        .btn-teal     { background: #0e7490; color: #a5f3fc; }
+        .btn-refresh  { background: #166534; color: #86efac; }
+        .btn-refresh.refreshing { background: #1a4731; }
+
+        /* ── status bar ──────────────────────────────────────── */
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            padding: 8px 14px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            color: #64748b;
+            flex-wrap: wrap;
+        }
+
+        .status-bar .stat { display: flex; align-items: center; gap: 5px; }
+        .status-bar .stat i { color: #38bdf8; font-size: 0.7rem; }
+        .status-bar .stat span { color: #94a3b8; }
+        .status-bar .stat strong { color: #e2e8f0; }
+
+        .auto-badge {
+            margin-left: auto;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #166534;
+            color: #86efac;
+            display: none;
+        }
+
+        .auto-badge.visible { display: inline-block; }
+
+        /* ── log viewer ──────────────────────────────────────── */
+        .log-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .log-table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', 'Consolas', monospace;
+            font-size: 0.8rem;
+        }
+
+        thead th {
+            background: #0f172a;
+            padding: 9px 12px;
+            text-align: left;
+            font-family: -apple-system, sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #334155;
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 6px 12px;
+            border-bottom: 1px solid #1e293b;
+            vertical-align: top;
+            line-height: 1.5;
+        }
+
+        tbody tr:last-child td { border-bottom: none; }
+
+        /* level row colors */
+        tr.lvl-ERROR   { background: rgba(239,68,68,0.07); }
+        tr.lvl-ERROR td.td-level { color: #f87171; font-weight: 700; }
+        tr.lvl-ERROR td.td-msg   { color: #fca5a5; }
+
+        tr.lvl-WARNING, tr.lvl-WARN { background: rgba(245,158,11,0.07); }
+        tr.lvl-WARNING td.td-level,
+        tr.lvl-WARN    td.td-level { color: #fbbf24; font-weight: 700; }
+        tr.lvl-WARNING td.td-msg,
+        tr.lvl-WARN    td.td-msg   { color: #fde68a; }
+
+        tr.lvl-INFO { background: transparent; }
+        tr.lvl-INFO td.td-level { color: #22d3ee; }
+        tr.lvl-INFO td.td-msg   { color: #cbd5e1; }
+
+        tr.lvl-DEBUG { background: rgba(139,92,246,0.05); }
+        tr.lvl-DEBUG td.td-level { color: #a78bfa; }
+        tr.lvl-DEBUG td.td-msg   { color: #94a3b8; }
+
+        tr.lvl-CRITICAL { background: rgba(220,38,38,0.15); }
+        tr.lvl-CRITICAL td.td-level { color: #ef4444; font-weight: 900; }
+        tr.lvl-CRITICAL td.td-msg   { color: #fecaca; }
+
+        td.td-ts     { color: #475569; white-space: nowrap; }
+        td.td-pid    { color: #334155; white-space: nowrap; }
+        td.td-logger { color: #475569; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+        td.td-msg    { word-break: break-word; max-width: 900px; }
+
+        tbody tr:hover { filter: brightness(1.3); }
+
+        /* ── empty / loading / error ─────────────────────────── */
+        .state-row td {
+            text-align: center;
+            padding: 60px 20px;
+            color: #475569;
+            font-family: -apple-system, sans-serif;
+        }
+
+        .state-row i { font-size: 2rem; display: block; margin-bottom: 10px; opacity: 0.4; }
+
+        .spinner {
+            display: inline-block;
+            width: 18px; height: 18px;
+            border: 3px solid #334155;
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── pagination ──────────────────────────────────────── */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-top: 1px solid #334155;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .page-info { font-size: 0.82rem; color: #475569; }
+
+        .page-ctrls { display: flex; gap: 6px; align-items: center; }
+
+        .page-btn {
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            padding: 5px 11px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+
+        .page-btn:hover:not(:disabled) { background: #1e40af; color: #bfdbfe; border-color: #3b82f6; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-btn.active { background: #1e40af; color: #bfdbfe; border-color: #3b82f6; }
+
+        .page-input {
+            width: 56px;
+            text-align: center;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 5px;
+            padding: 5px 6px;
+            font-size: 0.82rem;
+            color: #e2e8f0;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-content">
+        <a class="navbar-brand" href="/gateway">
+            <i class="fas fa-bolt"></i> ZVOLTA
+        </a>
+        <ul class="nav-links">
+            <li><a href="/gateway"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="/logs"><i class="fas fa-list-alt"></i> Logs</a></li>
+            <li><a href="/app-logs" class="active"><i class="fas fa-terminal"></i> App Logs</a></li>
+            <li><a href="/api-docs"><i class="fas fa-book"></i> API Docs</a></li>
+            <li><button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <div class="page-title">
+            <i class="fas fa-terminal"></i> App Logs
+        </div>
+    </div>
+
+    <!-- toolbar -->
+    <div class="toolbar">
+        <div class="ctrl-group">
+            <label>Log File</label>
+            <select id="file-select" onchange="reload()">
+                <option value="app">app.log</option>
+                <option value="access">access.log</option>
+                <option value="error">error.log</option>
+            </select>
+        </div>
+
+        <div class="ctrl-group">
+            <label>Search</label>
+            <input type="text" id="search-input" placeholder="Filter text..." style="min-width:200px"
+                   onkeydown="if(event.key==='Enter') reload()">
+        </div>
+
+        <div class="ctrl-group">
+            <label>Level</label>
+            <div class="level-btns">
+                <button class="lvl-btn active-all" data-level="" onclick="setLevel(this, '')">All</button>
+                <button class="lvl-btn" data-level="ERROR"    onclick="setLevel(this, 'ERROR')">ERROR</button>
+                <button class="lvl-btn" data-level="WARNING"  onclick="setLevel(this, 'WARNING')">WARN</button>
+                <button class="lvl-btn" data-level="INFO"     onclick="setLevel(this, 'INFO')">INFO</button>
+                <button class="lvl-btn" data-level="DEBUG"    onclick="setLevel(this, 'DEBUG')">DEBUG</button>
+                <button class="lvl-btn" data-level="CRITICAL" onclick="setLevel(this, 'CRITICAL')">CRIT</button>
+            </div>
+        </div>
+
+        <div class="ctrl-group">
+            <label>Date From</label>
+            <input type="date" id="date-from">
+        </div>
+
+        <div class="ctrl-group">
+            <label>Date To</label>
+            <input type="date" id="date-to">
+        </div>
+
+        <div class="ctrl-group">
+            <label>Lines / page</label>
+            <select id="per-page" onchange="reload()">
+                <option value="100">100</option>
+                <option value="200" selected>200</option>
+                <option value="500">500</option>
+            </select>
+        </div>
+
+        <div class="toolbar-actions">
+            <button class="btn btn-primary" onclick="reload()"><i class="fas fa-search"></i> Search</button>
+            <button class="btn" style="background:#1e293b;color:#94a3b8;border:1px solid #334155" onclick="resetFilters()"><i class="fas fa-times"></i> Reset</button>
+            <button class="btn btn-teal" id="auto-btn" onclick="toggleAuto()">
+                <i class="fas fa-sync-alt"></i> Auto-Refresh
+            </button>
+            <button class="btn btn-teal" onclick="exportLog()"><i class="fas fa-download"></i> Export</button>
+        </div>
+    </div>
+
+    <!-- status bar -->
+    <div class="status-bar">
+        <div class="stat"><i class="fas fa-file"></i> File: <strong id="st-file">-</strong></div>
+        <div class="stat"><i class="fas fa-weight-hanging"></i> Size: <strong id="st-size">-</strong></div>
+        <div class="stat"><i class="fas fa-list"></i> Showing: <strong id="st-total">-</strong> lines (newest first)</div>
+        <div class="stat"><i class="fas fa-eye"></i> Tailed: last <strong id="st-tailed">-</strong> lines from file</div>
+        <div class="stat"><i class="fas fa-clock"></i> Last updated: <strong id="st-updated">-</strong></div>
+        <span class="auto-badge" id="auto-badge"><i class="fas fa-sync-alt fa-spin"></i> Auto</span>
+    </div>
+
+    <!-- log viewer -->
+    <div class="log-card">
+        <div class="log-table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>PID</th>
+                        <th>Level</th>
+                        <th>Logger</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody id="log-tbody">
+                    <tr class="state-row"><td colspan="5"><span class="spinner"></span> Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <span class="page-info" id="pg-info"></span>
+            <div class="page-ctrls">
+                <button class="page-btn" id="pg-first" onclick="goPage(1)" disabled title="First"><i class="fas fa-angle-double-left"></i></button>
+                <button class="page-btn" id="pg-prev"  onclick="goPage(curPage - 1)" disabled><i class="fas fa-chevron-left"></i></button>
+                <input  class="page-input" id="pg-input" type="number" min="1" value="1"
+                        onchange="goPage(parseInt(this.value))">
+                <button class="page-btn" id="pg-next"  onclick="goPage(curPage + 1)" disabled><i class="fas fa-chevron-right"></i></button>
+                <button class="page-btn" id="pg-last"  onclick="goPage(totalPages)" disabled title="Last"><i class="fas fa-angle-double-right"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem('access_token');
+    if (!token) window.location.href = '/';
+
+    function logout() {
+        localStorage.removeItem('access_token');
+        window.location.href = '/';
+    }
+
+    // ── state ─────────────────────────────────────────────────────────────────
+    let curPage    = 1;
+    let totalPages = 1;
+    let curLevel   = '';
+    let autoTimer  = null;
+
+    // ── level button ──────────────────────────────────────────────────────────
+    const LEVEL_ACTIVE = {
+        '':         'active-all',
+        'ERROR':    'active-error',
+        'WARNING':  'active-warn',
+        'INFO':     'active-info',
+        'DEBUG':    'active-debug',
+        'CRITICAL': 'active-error',
+    };
+
+    function setLevel(btn, level) {
+        document.querySelectorAll('.lvl-btn').forEach(b => {
+            b.className = 'lvl-btn';
+        });
+        btn.classList.add(LEVEL_ACTIVE[level] || 'active-all');
+        curLevel = level;
+        curPage  = 1;
+        reload();
+    }
+
+    // ── fetch ─────────────────────────────────────────────────────────────────
+    async function fetchLogs(page) {
+        const file     = document.getElementById('file-select').value;
+        const search   = document.getElementById('search-input').value.trim();
+        const perPage  = document.getElementById('per-page').value;
+        const dateFrom = document.getElementById('date-from').value;
+        const dateTo   = document.getElementById('date-to').value;
+        const params   = new URLSearchParams({
+            file, page, per_page: perPage,
+            level: curLevel, search,
+            date_from: dateFrom, date_to: dateTo
+        });
+        const res  = await fetch(`/api/app-logs?${params}`, {
+            headers: { 'x-session-key': token, 'x-session-type': 'web' }
+        });
+        return res.json();
+    }
+
+    // ── render ────────────────────────────────────────────────────────────────
+    function fmtSize(bytes) {
+        if (bytes < 1024)       return bytes + ' B';
+        if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(2) + ' MB';
+    }
+
+    function esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function renderRows(lines) {
+        if (!lines.length) {
+            document.getElementById('log-tbody').innerHTML =
+                `<tr class="state-row"><td colspan="5"><i class="fas fa-inbox"></i>No log lines match your filters</td></tr>`;
+            return;
+        }
+        document.getElementById('log-tbody').innerHTML = lines.map(l => `
+            <tr class="lvl-${esc(l.level)}">
+                <td class="td-ts">${esc(l.ts || '-')}</td>
+                <td class="td-pid">${esc(l.pid || '-')}</td>
+                <td class="td-level">${esc(l.level || '-')}</td>
+                <td class="td-logger" title="${esc(l.logger)}">${esc(l.logger || '-')}</td>
+                <td class="td-msg">${esc(l.msg || l.raw || '-')}</td>
+            </tr>`).join('');
+    }
+
+    function updatePagination(data) {
+        curPage    = data.page;
+        totalPages = data.pages;
+        const total = data.total;
+        const pp    = data.per_page;
+        const from  = total === 0 ? 0 : (curPage - 1) * pp + 1;
+        const to    = Math.min(curPage * pp, total);
+
+        document.getElementById('pg-info').textContent =
+            total === 0 ? 'No records' : `Showing ${from}–${to} of ${total}`;
+        document.getElementById('pg-input').value = curPage;
+        document.getElementById('pg-input').max   = totalPages;
+
+        document.getElementById('pg-first').disabled = curPage <= 1;
+        document.getElementById('pg-prev').disabled  = curPage <= 1;
+        document.getElementById('pg-next').disabled  = curPage >= totalPages;
+        document.getElementById('pg-last').disabled  = curPage >= totalPages;
+    }
+
+    function updateStatusBar(data) {
+        const FILES = { app: 'app.log', access: 'access.log', error: 'error.log' };
+        document.getElementById('st-file').textContent    = FILES[data.file] || data.file;
+        document.getElementById('st-size').textContent    = fmtSize(data.file_size || 0);
+        document.getElementById('st-total').textContent   = data.total;
+        document.getElementById('st-tailed').textContent  = `${data.tailed} / ${data.max_tail}`;
+        document.getElementById('st-updated').textContent = new Date().toLocaleTimeString();
+    }
+
+    // ── load (shows spinner — used for initial load, search, page change) ─────
+    async function load(page) {
+        document.getElementById('log-tbody').innerHTML =
+            `<tr class="state-row"><td colspan="5"><span class="spinner"></span> Loading...</td></tr>`;
+        try {
+            const data = await fetchLogs(page);
+            if (data.error) {
+                document.getElementById('log-tbody').innerHTML =
+                    `<tr class="state-row"><td colspan="5" style="color:#f87171">
+                        <i class="fas fa-exclamation-triangle"></i>${esc(data.error)}</td></tr>`;
+                return;
+            }
+            renderRows(data.lines || []);
+            updatePagination(data);
+            updateStatusBar(data);
+        } catch (e) {
+            document.getElementById('log-tbody').innerHTML =
+                `<tr class="state-row"><td colspan="5" style="color:#f87171">
+                    <i class="fas fa-exclamation-triangle"></i> Failed to fetch logs: ${esc(e.message)}</td></tr>`;
+        }
+    }
+
+    // ── silent load (no spinner — used by auto-refresh, swaps content only when ready) ──
+    let _silentBusy = false;
+    async function loadSilent(page) {
+        if (_silentBusy) return;          // skip tick if previous one is still in flight
+        _silentBusy = true;
+        const badge = document.getElementById('auto-badge');
+        badge.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Syncing…';
+        try {
+            const data = await fetchLogs(page);
+            if (!data.error) {
+                renderRows(data.lines || []);
+                updatePagination(data);
+                updateStatusBar(data);
+            }
+        } catch (_) {
+            // silently ignore network hiccups during auto-refresh
+        } finally {
+            _silentBusy = false;
+            badge.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Auto';
+        }
+    }
+
+    function reload() { curPage = 1; load(1); }
+
+    function resetFilters() {
+        document.getElementById('search-input').value = '';
+        document.getElementById('date-from').value    = '';
+        document.getElementById('date-to').value      = '';
+        document.querySelectorAll('.lvl-btn').forEach(b => b.className = 'lvl-btn');
+        document.querySelector('.lvl-btn[data-level=""]').classList.add('active-all');
+        curLevel = '';
+        curPage  = 1;
+        load(1);
+    }
+
+    function goPage(p) {
+        if (p < 1 || p > totalPages) return;
+        curPage = p;
+        load(p);
+    }
+
+    // ── auto refresh ──────────────────────────────────────────────────────────
+    function toggleAuto() {
+        if (autoTimer) {
+            clearInterval(autoTimer);
+            autoTimer = null;
+            document.getElementById('auto-btn').style.background = '';
+            document.getElementById('auto-badge').classList.remove('visible');
+        } else {
+            // refresh current page silently every 10 s — no flicker
+            autoTimer = setInterval(() => loadSilent(curPage), 10000);
+            document.getElementById('auto-btn').style.background = '#166534';
+            document.getElementById('auto-badge').innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Auto';
+            document.getElementById('auto-badge').classList.add('visible');
+        }
+    }
+
+    // ── export: download visible page as .txt ─────────────────────────────────
+    async function exportLog() {
+        const data = await fetchLogs(curPage);
+        if (!data.lines) return;
+        const text = data.lines.map(l => l.raw).join('\n');
+        const a    = document.createElement('a');
+        const file = document.getElementById('file-select').value;
+        a.href     = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+        a.download = `${file}_page${curPage}.log`;
+        a.click();
+    }
+
+    // ── init ──────────────────────────────────────────────────────────────────
+    load(1);
+</script>
+</body>
+</html>

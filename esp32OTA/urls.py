@@ -190,6 +190,120 @@ def logs_page():
     return render_template("logs.html")
 
 
+@app.route("/app-logs", methods=["GET"])
+def app_logs_page():
+    """Display app.log viewer page"""
+    return render_template("app_logs.html")
+
+
+@app.route("/api/app-logs", methods=["GET"])
+def app_logs_api():
+    """
+    Efficiently tail and paginate /var/log/esp32ota/app.log (or access/error logs).
+    Reads only the last MAX_TAIL lines so large files never block the server.
+    Query params: file, page, per_page, level, search
+    """
+    import os
+    import re
+    from collections import deque
+
+    LOG_FILES = {
+        "app":    os.path.join(config.log_directory_path, "app.log"),
+        "access": os.path.join(config.log_directory_path, "access.log"),
+        "error":  os.path.join(config.log_directory_path, "error.log"),
+    }
+    MAX_TAIL   = 5000   # lines kept in memory at most
+    PER_PAGE   = min(int(request.args.get("per_page", 200)), 500)
+    page       = max(int(request.args.get("page", 1)), 1)
+    file_key   = request.args.get("file", "app")
+    level_filt = request.args.get("level", "").upper().strip()
+    search     = request.args.get("search", "").strip().lower()
+    date_from  = request.args.get("date_from", "").strip()   # YYYY-MM-DD
+    date_to    = request.args.get("date_to",   "").strip()   # YYYY-MM-DD
+
+    filepath = LOG_FILES.get(file_key, LOG_FILES["app"])
+
+    # ── file existence check ──────────────────────────────────────────────────
+    if not os.path.exists(filepath):
+        return jsonify({"lines": [], "total": 0, "page": 1, "pages": 1,
+                        "file_size": 0, "file": file_key,
+                        "error": f"Log file not found: {filepath}"})
+
+    file_size = os.path.getsize(filepath)
+
+    # ── efficient tail: read chunks from EOF until we have MAX_TAIL lines ─────
+    def tail_file(path, max_lines):
+        buf = deque()
+        chunk = 65536  # 64 KB
+        with open(path, "rb") as f:
+            f.seek(0, 2)
+            remaining = f.tell()
+            leftover  = b""
+            while remaining > 0 and len(buf) < max_lines:
+                read_size = min(chunk, remaining)
+                remaining -= read_size
+                f.seek(remaining)
+                data  = f.read(read_size) + leftover
+                parts = data.split(b"\n")
+                leftover = parts[0]
+                for part in reversed(parts[1:]):
+                    buf.appendleft(part.decode("utf-8", errors="replace"))
+                    if len(buf) >= max_lines:
+                        break
+            if leftover:
+                buf.appendleft(leftover.decode("utf-8", errors="replace"))
+        return list(buf)
+
+    raw_lines = tail_file(filepath, MAX_TAIL)
+
+    # ── parse log line ─────────────────────────────────────────────────────────
+    LOG_RE = re.compile(
+        r"^\[(?P<ts>[^\]]+)\]\s+\[(?P<pid>[^\]]+)\]\s+\[(?P<level>[^\]]+)\]\s+\[(?P<logger>[^\]]+)\]\s+(?P<msg>.*)$"
+    )
+
+    def parse_line(raw):
+        m = LOG_RE.match(raw)
+        if m:
+            return {"ts": m.group("ts"), "pid": m.group("pid"),
+                    "level": m.group("level"), "logger": m.group("logger"),
+                    "msg": m.group("msg"), "raw": raw}
+        return {"ts": "", "pid": "", "level": "INFO", "logger": "",
+                "msg": raw, "raw": raw}
+
+    parsed = [parse_line(l) for l in raw_lines if l.strip()]
+
+    # ── filter ─────────────────────────────────────────────────────────────────
+    if level_filt and level_filt != "ALL":
+        parsed = [l for l in parsed if l["level"] == level_filt]
+    if search:
+        parsed = [l for l in parsed if search in l["raw"].lower()]
+    if date_from:
+        parsed = [l for l in parsed if l["ts"][:10] >= date_from]
+    if date_to:
+        parsed = [l for l in parsed if l["ts"][:10] <= date_to]
+
+    # newest first
+    parsed.reverse()
+
+    total = len(parsed)
+    pages = max(1, -(-total // PER_PAGE))   # ceiling division
+    page  = min(page, pages)
+    start = (page - 1) * PER_PAGE
+    slice_ = parsed[start: start + PER_PAGE]
+
+    return jsonify({
+        "lines":     slice_,
+        "total":     total,
+        "page":      page,
+        "pages":     pages,
+        "per_page":  PER_PAGE,
+        "file_size": file_size,
+        "file":      file_key,
+        "tailed":    len(raw_lines),   # how many raw lines were read
+        "max_tail":  MAX_TAIL,
+    })
+
+
 
 @app.route("/api/mqtt/broker-logs", methods=["GET"])
 def get_mqtt_broker_logs():

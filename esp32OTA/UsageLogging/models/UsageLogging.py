@@ -36,6 +36,7 @@ class UsageLogging(models.Model):
     def display(self):
         return {
             constants.ID: str(self[constants.ID]),
+            constants.USAGE_LOGGING__DEVICE_ID: self.device_id,
             constants.USAGE_LOGGING__TIMESTAMP: self.timestamp,
             constants.USAGE_LOGGING__SOCKET_ID: self.socket_id,
             constants.USAGE_LOGGING__SESSION_ID: self.session_id,
@@ -46,7 +47,9 @@ class UsageLogging(models.Model):
             constants.USAGE_LOGGING__IS_COMPLETED: self.is_completed,
             constants.USAGE_LOGGING__AUTO_COMPLETION: self.auto_completion,
             constants.USAGE_LOGGING__RESPONSE_CODE: self.response_code,
-            constants.USAGE_LOGGING__API_RESPONSE: self.api_response
+            constants.USAGE_LOGGING__API_RESPONSE: self.api_response,
+            constants.CREATED_ON: self.created_on,
+            constants.UPDATED_ON: self.updated_on
         }
 
     def display_min(self):

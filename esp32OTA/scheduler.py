@@ -59,12 +59,4 @@ def init_scheduler(app):
     logger.info("[SCHEDULER] Scheduler started successfully")
     print("[SCHEDULER] Scheduler started successfully")
     
-    # Manually trigger the gateway polling task immediately after start
-    try:
-        from esp32OTA.Services.GatewayService import GatewayService
-        print("[SCHEDULER] Executing initial Gateway poll...")
-        GatewayService.poll_devices()
-    except Exception as e:
-        logger.error(f"[SCHEDULER] Failed to run initial poll: {str(e)}")
-    
     return scheduler

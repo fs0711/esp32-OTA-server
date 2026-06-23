@@ -471,6 +471,7 @@
         <ul class="nav-links">
             <li><a href="/gateway"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
             <li><a href="/logs" class="active"><i class="fas fa-list-alt"></i> Logs</a></li>
+            <li><a href="/app-logs"><i class="fas fa-terminal"></i> App Logs</a></li>
             <li><a href="/api-docs"><i class="fas fa-book"></i> API Docs</a></li>
             <li><button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
         </ul>
@@ -509,6 +510,14 @@
                     <option value="received">Received</option>
                 </select>
             </div>
+            <div class="filter-group">
+                <label>Created From</label>
+                <input type="date" id="gw-date-from">
+            </div>
+            <div class="filter-group">
+                <label>Created To</label>
+                <input type="date" id="gw-date-to">
+            </div>
             <div class="filter-actions">
                 <button class="btn-search" onclick="filterGateway()"><i class="fas fa-search"></i> Search</button>
                 <button class="btn-reset" onclick="resetGateway()">Reset</button>
@@ -524,14 +533,15 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Device ID</th>
                             <th>Log Type</th>
                             <th>Payload</th>
+                            <th>Created On</th>
+                            <th>Updated On</th>
                         </tr>
                     </thead>
                     <tbody id="gw-tbody">
-                        <tr class="loading-row"><td colspan="4"><span class="spinner"></span>Loading...</td></tr>
+                        <tr class="loading-row"><td colspan="5"><span class="spinner"></span>Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -558,6 +568,14 @@
                 <label>Socket Status</label>
                 <input type="number" id="ping-socket-status" placeholder="e.g. 1" style="min-width:120px">
             </div>
+            <div class="filter-group">
+                <label>Created From</label>
+                <input type="date" id="ping-date-from">
+            </div>
+            <div class="filter-group">
+                <label>Created To</label>
+                <input type="date" id="ping-date-to">
+            </div>
             <div class="filter-actions">
                 <button class="btn-search" onclick="filterPing()"><i class="fas fa-search"></i> Search</button>
                 <button class="btn-reset" onclick="resetPing()">Reset</button>
@@ -573,16 +591,17 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Device ID</th>
                             <th>Socket Status</th>
                             <th>Session ID</th>
                             <th>Box Open Req</th>
                             <th>Credit</th>
+                            <th>Created On</th>
+                            <th>Updated On</th>
                         </tr>
                     </thead>
                     <tbody id="ping-tbody">
-                        <tr class="loading-row"><td colspan="6"><span class="spinner"></span>Loading...</td></tr>
+                        <tr class="loading-row"><td colspan="7"><span class="spinner"></span>Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -621,6 +640,14 @@
                     <option value="0">No</option>
                 </select>
             </div>
+            <div class="filter-group">
+                <label>Created From</label>
+                <input type="date" id="usage-date-from">
+            </div>
+            <div class="filter-group">
+                <label>Created To</label>
+                <input type="date" id="usage-date-to">
+            </div>
             <div class="filter-actions">
                 <button class="btn-search" onclick="filterUsage()"><i class="fas fa-search"></i> Search</button>
                 <button class="btn-reset" onclick="resetUsage()">Reset</button>
@@ -636,7 +663,6 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Device ID</th>
                             <th>Timestamp</th>
                             <th>Socket ID</th>
@@ -648,10 +674,12 @@
                             <th>Completed</th>
                             <th>Auto</th>
                             <th>Resp Code</th>
+                            <th>Created On</th>
+                            <th>Updated On</th>
                         </tr>
                     </thead>
                     <tbody id="usage-tbody">
-                        <tr class="loading-row"><td colspan="12"><span class="spinner"></span>Loading...</td></tr>
+                        <tr class="loading-row"><td colspan="13"><span class="spinner"></span>Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -709,8 +737,22 @@
         return res.json();
     }
 
-    function shortId(id) {
-        return id ? `<span class="mono" title="${id}">${String(id).slice(-8)}</span>` : '-';
+    function fullId(id) {
+        return id ? `<span class="mono" style="font-size:0.78rem;word-break:break-all">${id}</span>` : '-';
+    }
+
+    function fmtDate(ms) {
+        if (!ms) return '-';
+        const d = new Date(ms);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function dateToMs(dateStr, endOfDay = false) {
+        if (!dateStr) return null;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        if (endOfDay) return new Date(y, m-1, d, 23, 59, 59, 999).getTime();
+        return new Date(y, m-1, d).getTime();
     }
 
     function renderPagination(prefix, allRecords, page) {
@@ -761,9 +803,13 @@
     function filterGateway() {
         const deviceId = document.getElementById('gw-device-id').value.trim().toLowerCase();
         const logType = document.getElementById('gw-log-type').value;
+        const dateFrom = dateToMs(document.getElementById('gw-date-from').value);
+        const dateTo = dateToMs(document.getElementById('gw-date-to').value, true);
         gwFiltered = gwRaw.filter(r =>
             (!deviceId || (r.device_id || '').toLowerCase().includes(deviceId)) &&
-            (!logType || r.log_type === logType)
+            (!logType || r.log_type === logType) &&
+            (!dateFrom || (r.created_on && r.created_on >= dateFrom)) &&
+            (!dateTo || (r.created_on && r.created_on <= dateTo))
         );
         gwPage = 1;
         renderGateway();
@@ -772,23 +818,24 @@
     function renderGateway() {
         const slice = pageSlice(gwFiltered, gwPage);
         renderPagination('gw', gwFiltered, gwPage);
-        if (!slice.length) { document.getElementById('gw-tbody').innerHTML = emptyRow(4); return; }
+        if (!slice.length) { document.getElementById('gw-tbody').innerHTML = emptyRow(5); return; }
         document.getElementById('gw-tbody').innerHTML = slice.map(r => {
             const p = JSON.stringify(r.payload || {});
             return `<tr>
-                <td>${shortId(r.id)}</td>
                 <td><span class="mono">${r.device_id || '-'}</span></td>
                 <td><span class="badge ${r.log_type === 'sent' ? 'badge-sent' : 'badge-received'}">${r.log_type || '-'}</span></td>
                 <td class="payload-cell">
                     <span class="payload-preview" onclick='showPayload(${p.replace(/'/g, "&#39;")})'>${p.slice(0, 80)}${p.length > 80 ? '…' : ''}</span>
                 </td>
+                <td style="white-space:nowrap;font-size:0.82rem">${fmtDate(r.created_on)}</td>
+                <td style="white-space:nowrap;font-size:0.82rem">${fmtDate(r.updated_on)}</td>
             </tr>`;
         }).join('');
     }
 
     async function loadGateway() {
         document.getElementById('gw-tbody').innerHTML =
-            `<tr class="loading-row"><td colspan="4"><span class="spinner"></span>Loading...</td></tr>`;
+            `<tr class="loading-row"><td colspan="5"><span class="spinner"></span>Loading...</td></tr>`;
         try {
             const data = await apiFetch('/api/gateway-logging/read');
             gwRaw = data.response_data || [];
@@ -796,7 +843,7 @@
             gwPage = 1;
             renderGateway();
         } catch (e) {
-            document.getElementById('gw-tbody').innerHTML = errorRow(4, e.message);
+            document.getElementById('gw-tbody').innerHTML = errorRow(5, e.message);
             document.getElementById('gw-info').textContent = 'Error: ' + e.message;
         }
     }
@@ -805,6 +852,8 @@
     function resetGateway() {
         document.getElementById('gw-device-id').value = '';
         document.getElementById('gw-log-type').value = '';
+        document.getElementById('gw-date-from').value = '';
+        document.getElementById('gw-date-to').value = '';
         gwFiltered = gwRaw; gwPage = 1; renderGateway();
     }
 
@@ -814,9 +863,13 @@
     function filterPing() {
         const deviceId = document.getElementById('ping-device-id').value.trim().toLowerCase();
         const socketStatus = document.getElementById('ping-socket-status').value.trim();
+        const dateFrom = dateToMs(document.getElementById('ping-date-from').value);
+        const dateTo = dateToMs(document.getElementById('ping-date-to').value, true);
         pingFiltered = pingRaw.filter(r =>
             (!deviceId || (r.device_id || '').toLowerCase().includes(deviceId)) &&
-            (!socketStatus || String(r.socket_status) === socketStatus)
+            (!socketStatus || String(r.socket_status) === socketStatus) &&
+            (!dateFrom || (r.created_on && r.created_on >= dateFrom)) &&
+            (!dateTo || (r.created_on && r.created_on <= dateTo))
         );
         pingPage = 1;
         renderPing();
@@ -825,20 +878,21 @@
     function renderPing() {
         const slice = pageSlice(pingFiltered, pingPage);
         renderPagination('ping', pingFiltered, pingPage);
-        if (!slice.length) { document.getElementById('ping-tbody').innerHTML = emptyRow(6); return; }
+        if (!slice.length) { document.getElementById('ping-tbody').innerHTML = emptyRow(7); return; }
         document.getElementById('ping-tbody').innerHTML = slice.map(r => `<tr>
-            <td>${shortId(r.id)}</td>
             <td><span class="mono">${r.device_id || '-'}</span></td>
             <td>${r.socket_status !== undefined ? r.socket_status : '-'}</td>
             <td><span class="mono">${r.session_id || '-'}</span></td>
             <td>${r.box_open_request ? '<span class="badge badge-received">Yes</span>' : '<span class="badge badge-offline">No</span>'}</td>
             <td>${r.credit !== undefined ? r.credit : '-'}</td>
+            <td style="white-space:nowrap;font-size:0.82rem">${fmtDate(r.created_on)}</td>
+            <td style="white-space:nowrap;font-size:0.82rem">${fmtDate(r.updated_on)}</td>
         </tr>`).join('');
     }
 
     async function loadPing() {
         document.getElementById('ping-tbody').innerHTML =
-            `<tr class="loading-row"><td colspan="6"><span class="spinner"></span>Loading...</td></tr>`;
+            `<tr class="loading-row"><td colspan="7"><span class="spinner"></span>Loading...</td></tr>`;
         try {
             const data = await apiFetch('/api/ping-logging/read');
             pingRaw = data.response_data || [];
@@ -846,7 +900,7 @@
             pingPage = 1;
             renderPing();
         } catch (e) {
-            document.getElementById('ping-tbody').innerHTML = errorRow(6, e.message);
+            document.getElementById('ping-tbody').innerHTML = errorRow(7, e.message);
             document.getElementById('ping-info').textContent = 'Error: ' + e.message;
         }
     }
@@ -855,6 +909,8 @@
     function resetPing() {
         document.getElementById('ping-device-id').value = '';
         document.getElementById('ping-socket-status').value = '';
+        document.getElementById('ping-date-from').value = '';
+        document.getElementById('ping-date-to').value = '';
         pingFiltered = pingRaw; pingPage = 1; renderPing();
     }
 
@@ -866,11 +922,15 @@
         const sessionId = document.getElementById('usage-session-id').value.trim().toLowerCase();
         const socketId = document.getElementById('usage-socket-id').value.trim();
         const isCompleted = document.getElementById('usage-is-completed').value;
+        const dateFrom = dateToMs(document.getElementById('usage-date-from').value);
+        const dateTo = dateToMs(document.getElementById('usage-date-to').value, true);
         usageFiltered = usageRaw.filter(r =>
             (!deviceId || (r.device_id || '').toLowerCase().includes(deviceId)) &&
             (!sessionId || (r.session_id || '').toLowerCase().includes(sessionId)) &&
             (!socketId || String(r.socket_id) === socketId) &&
-            (!isCompleted || String(r.is_completed) === isCompleted)
+            (!isCompleted || String(r.is_completed) === isCompleted) &&
+            (!dateFrom || (r.created_on && r.created_on >= dateFrom)) &&
+            (!dateTo || (r.created_on && r.created_on <= dateTo))
         );
         usagePage = 1;
         renderUsage();
@@ -879,9 +939,8 @@
     function renderUsage() {
         const slice = pageSlice(usageFiltered, usagePage);
         renderPagination('usage', usageFiltered, usagePage);
-        if (!slice.length) { document.getElementById('usage-tbody').innerHTML = emptyRow(12); return; }
+        if (!slice.length) { document.getElementById('usage-tbody').innerHTML = emptyRow(13); return; }
         document.getElementById('usage-tbody').innerHTML = slice.map(r => `<tr>
-            <td>${shortId(r.id)}</td>
             <td><span class="mono">${r.device_id || '-'}</span></td>
             <td><span class="mono" style="font-size:0.8rem">${r.timestamp || '-'}</span></td>
             <td>${r.socket_id !== undefined ? r.socket_id : '-'}</td>
@@ -893,12 +952,14 @@
             <td>${r.is_completed ? '<span class="badge badge-completed">Yes</span>' : '<span class="badge badge-incomplete">No</span>'}</td>
             <td>${r.auto_completion ? 'Yes' : 'No'}</td>
             <td>${r.response_code !== undefined && r.response_code !== null ? r.response_code : '-'}</td>
+            <td style="white-space:nowrap;font-size:0.82rem">${fmtDate(r.created_on)}</td>
+            <td style="white-space:nowrap;font-size:0.82rem">${fmtDate(r.updated_on)}</td>
         </tr>`).join('');
     }
 
     async function loadUsage() {
         document.getElementById('usage-tbody').innerHTML =
-            `<tr class="loading-row"><td colspan="12"><span class="spinner"></span>Loading...</td></tr>`;
+            `<tr class="loading-row"><td colspan="13"><span class="spinner"></span>Loading...</td></tr>`;
         try {
             const data = await apiFetch('/api/usage-logging/read');
             usageRaw = data.response_data || [];
@@ -906,7 +967,7 @@
             usagePage = 1;
             renderUsage();
         } catch (e) {
-            document.getElementById('usage-tbody').innerHTML = errorRow(12, e.message);
+            document.getElementById('usage-tbody').innerHTML = errorRow(13, e.message);
             document.getElementById('usage-info').textContent = 'Error: ' + e.message;
         }
     }
@@ -917,6 +978,8 @@
         document.getElementById('usage-session-id').value = '';
         document.getElementById('usage-socket-id').value = '';
         document.getElementById('usage-is-completed').value = '';
+        document.getElementById('usage-date-from').value = '';
+        document.getElementById('usage-date-to').value = '';
         usageFiltered = usageRaw; usagePage = 1; renderUsage();
     }
 
@@ -925,18 +988,18 @@
         let records, headers, row;
         if (type === 'gateway') {
             records = gwFiltered;
-            headers = ['ID', 'Device ID', 'Log Type', 'Payload'];
-            row = r => [r.id, r.device_id, r.log_type, JSON.stringify(r.payload)];
+            headers = ['ID', 'Device ID', 'Log Type', 'Payload', 'Created On', 'Updated On'];
+            row = r => [r.id, r.device_id, r.log_type, JSON.stringify(r.payload), fmtDate(r.created_on), fmtDate(r.updated_on)];
         } else if (type === 'ping') {
             records = pingFiltered;
-            headers = ['ID', 'Device ID', 'Socket Status', 'Session ID', 'Box Open Request', 'Credit'];
-            row = r => [r.id, r.device_id, r.socket_status, r.session_id, r.box_open_request, r.credit];
+            headers = ['ID', 'Device ID', 'Socket Status', 'Session ID', 'Box Open Request', 'Credit', 'Created On', 'Updated On'];
+            row = r => [r.id, r.device_id, r.socket_status, r.session_id, r.box_open_request, r.credit, fmtDate(r.created_on), fmtDate(r.updated_on)];
         } else {
             records = usageFiltered;
             headers = ['ID', 'Device ID', 'Timestamp', 'Socket ID', 'Session ID',
-                       'Consumption', 'Current', 'Voltage', 'Duration', 'Is Completed', 'Auto Completion', 'Response Code'];
+                       'Consumption', 'Current', 'Voltage', 'Duration', 'Is Completed', 'Auto Completion', 'Response Code', 'Created On', 'Updated On'];
             row = r => [r.id, r.device_id, r.timestamp, r.socket_id, r.session_id,
-                        r.consumption, r.current, r.voltage, r.duration, r.is_completed, r.auto_completion, r.response_code];
+                        r.consumption, r.current, r.voltage, r.duration, r.is_completed, r.auto_completion, r.response_code, fmtDate(r.created_on), fmtDate(r.updated_on)];
         }
 
         if (!records.length) { alert('No data to export.'); return; }

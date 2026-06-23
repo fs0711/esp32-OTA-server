@@ -380,11 +380,11 @@ class MQTTClientService:
         """
         Called by the scheduler every 30 seconds.
         Checks in-memory last usage data, finds any device whose last usage had
-        is_completed=0 for more than 3 minutes, and auto-sends a completion payload.
+        is_completed=0 for more than 10 minutes, and auto-sends a completion payload.
         """
         try:
             now = datetime.now().timestamp()
-            stale_threshold = 3 * 60  # 3 minutes in seconds
+            stale_threshold = 10 * 60  # 10 minutes in seconds
 
             for device_id, entry in list(self.last_incomplete_usage.items()):
                 if entry["payload"].get("is_completed") != 0:
@@ -607,6 +607,8 @@ class MQTTClientService:
         try:
             try:
                 data = json.loads(value)
+                if not isinstance(data, dict):
+                    data = {"getfirmware": data}
             except (json.JSONDecodeError, TypeError):
                 data = {}
             if data.get("getfirmware") != 1:
