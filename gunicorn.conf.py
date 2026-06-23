@@ -69,12 +69,12 @@ def post_fork(server, worker):
         # This worker got the lock - enable scheduler
         os.environ["SCHEDULER_ENABLED"] = "true"
         scheduler_enabled = True
-        server.log.info(f"✓ Scheduler ENABLED in worker PID: {worker.pid}")
+        server.log.info(f"[OK] Scheduler ENABLED in worker PID: {worker.pid}")
         
     except FileExistsError:
         # Lock file already exists - another worker has scheduler
         os.environ["SCHEDULER_ENABLED"] = "false"
-        server.log.info(f"✗ Scheduler DISABLED in worker PID: {worker.pid}")
+        server.log.info(f"[--] Scheduler DISABLED in worker PID: {worker.pid}")
         
     except Exception as e:
         # Error occurred - disable scheduler to be safe
