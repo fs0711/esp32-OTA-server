@@ -33,6 +33,7 @@ class MQTTClientService:
         self.broker_host = getattr(config, 'MQTT_BROKER_HOST')
         self.broker_port = getattr(config, 'MQTT_BROKER_PORT')
         
+        self._startup_epoch = datetime.now().timestamp()  # Used to reject retained/replayed messages from before this boot
         self.broker_stats = {}
         self.device_data = {}
         self.last_timestamps = {}  # Track last timestamp per device
@@ -80,13 +81,17 @@ class MQTTClientService:
                         # Identify if this is a new message by timestamp (t) BEFORE logging
                         new_timestamp = data.get("t") or data.get("timestamp")
                         if new_timestamp is not None:
-                            last_ts = self.last_timestamps.get(device_id)
-                            if last_ts == new_timestamp:
-                                # Duplicate - silent ignore or debug log only
+                            # Reject retained/replayed messages published before this server boot
+                            if new_timestamp < self._startup_epoch:
+                                logger.debug(f"[MQTT] Skipping pre-boot retained status for {device_id} (msg_t={new_timestamp} < boot_t={self._startup_epoch:.0f})")
+                                return
+                            last_ts = self._get_last_ts("status", device_id)
+                            if last_ts == str(new_timestamp):
                                 return
                         
                         # Only log if it's unique/new
                         logger.info(f"[MQTT] Unique status for {device_id}: {payload_str}")
+                        self._set_last_ts("status", device_id, new_timestamp)
                         self.handle_device_status(device_id, data)
                     except json.JSONDecodeError:
                         logger.error(f"[MQTT] Failed to decode status payload for {device_id}")
@@ -96,7 +101,11 @@ class MQTTClientService:
                         data = json.loads(payload_str)
                         new_timestamp = data.get("t") or data.get("timestamp")
                         if new_timestamp is not None:
-                            if self.last_usage_timestamps.get(device_id) == new_timestamp:
+                            # Reject retained/replayed messages published before this server boot
+                            if new_timestamp < self._startup_epoch:
+                                logger.debug(f"[MQTT] Skipping pre-boot retained usage for {device_id} (msg_t={new_timestamp} < boot_t={self._startup_epoch:.0f})")
+                                return
+                            if self._get_last_ts("usage", device_id) == str(new_timestamp):
                                 return
                         
                         logger.info(f"[MQTT] Unique usage for {device_id}: {payload_str}")
@@ -360,7 +369,7 @@ class MQTTClientService:
                 
                 # Only save timestamp after successful API post
                 if response.status_code in [200, 201] and new_timestamp:
-                    self.last_usage_timestamps[device_id] = new_timestamp
+                    self._set_last_ts("usage", device_id, new_timestamp)
             except Exception as api_err:
                 logger.error(f"[MQTT] API Post failed for {device_id}: {str(api_err)}")
                 api_response_data = {"error": str(api_err)}
@@ -657,6 +666,29 @@ class MQTTClientService:
 
         except Exception as e:
             logger.error(f"[MQTT] Error handling firmware request for {device_id}: {str(e)}", exc_info=True)
+
+    def _get_last_ts(self, kind: str, device_id: str) -> str | None:
+        """Read last processed timestamp from Redis, fall back to in-memory dict."""
+        try:
+            from esp32OTA.Services.redis_client import redis_client
+            if redis_client._r:
+                return redis_client._r.get(f"mqtt:dedup:{kind}:{device_id}")
+        except Exception:
+            pass
+        store = self.last_timestamps if kind == "status" else self.last_usage_timestamps
+        v = store.get(device_id)
+        return str(v) if v is not None else None
+
+    def _set_last_ts(self, kind: str, device_id: str, timestamp) -> None:
+        """Persist last processed timestamp to Redis and in-memory dict."""
+        store = self.last_timestamps if kind == "status" else self.last_usage_timestamps
+        store[device_id] = timestamp
+        try:
+            from esp32OTA.Services.redis_client import redis_client
+            if redis_client._r:
+                redis_client._r.set(f"mqtt:dedup:{kind}:{device_id}", str(timestamp))
+        except Exception:
+            pass
 
     def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties=None):
         self.connected = False
