@@ -667,7 +667,7 @@ class MQTTClientService:
         except Exception as e:
             logger.error(f"[MQTT] Error handling firmware request for {device_id}: {str(e)}", exc_info=True)
 
-    def _get_last_ts(self, kind: str, device_id: str) -> str | None:
+    def _get_last_ts(self, kind: str, device_id: str):
         """Read last processed timestamp from Redis, fall back to in-memory dict."""
         try:
             from esp32OTA.Services.redis_client import redis_client
