@@ -39,7 +39,7 @@ FILTER_DATE_FORMAT = "%d %m %Y"
 FILTER_DATETIME_FORMAT = "%d %m %Y %H:%M:%S"
 TIME_ZONE = "Asia/Karachi"
 
-FRONTEND_URL = "https://iot.digtrosoft.com"
+FRONTEND_URL = "https://ota.zvolta.com"
 MQTT_BROKER_HOST = "127.0.0.1"
 MQTT_BROKER_PORT = 1884
 ORKOFLEET_BASE_URL = "https://smartswitch.orkofleet.com"
