@@ -722,7 +722,16 @@
                         let lastSeenText = 'Never';
                         if (device.last_seen) {
                             const date = new Date(device.last_seen);
-                            lastSeenText = !isNaN(date.getTime()) ? date.toLocaleString() : device.last_seen;
+                            if (!isNaN(date.getTime())) {
+                                lastSeenText = date.toLocaleString(undefined, {
+                                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                                    year: 'numeric', month: '2-digit', day: '2-digit',
+                                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                                    hour12: false
+                                });
+                            } else {
+                                lastSeenText = device.last_seen;
+                            }
                         }
                         return `
                         <tr>

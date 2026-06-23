@@ -88,7 +88,21 @@ def gateway_data():
             connection = device.connection or {}
             last_update = connection.get('last_updated', '')
             device_status = connection.get('status', 'offline')
-            
+
+            # Normalise last_update to ISO string regardless of how it was stored
+            if last_update:
+                if hasattr(last_update, 'isoformat'):
+                    last_update = last_update.isoformat()
+                else:
+                    try:
+                        v = int(last_update)
+                        if v > 1e10:  # milliseconds → seconds
+                            v = v / 1000
+                        from datetime import datetime as _dt, timezone as _tz
+                        last_update = _dt.fromtimestamp(v, tz=_tz.utc).isoformat()
+                    except (ValueError, TypeError, OSError):
+                        last_update = str(last_update)
+
             # Use created_on as fallback if last_update is empty
             if not last_update and device.created_on:
                 last_update = device.created_on.isoformat() if hasattr(device.created_on, 'isoformat') else str(device.created_on)
