@@ -25,6 +25,30 @@ from esp32OTA.UsageLogging.views.usage_logging import usage_logging_bp
 from esp32OTA.PingLogging.views.ping_logging import ping_logging_bp
 
 
+@app.route("/api/redis/status", methods=["GET"])
+def redis_status():
+    """Check Redis connection and return basic stats."""
+    from esp32OTA.Services.redis_client import redis_client
+    r = redis_client._r
+    if not r:
+        return jsonify({"connected": False, "error": "Redis client not initialised"}), 503
+    try:
+        r.ping()
+        info = r.info("server")
+        topics = redis_client.get_all_topics()
+        return jsonify({
+            "connected": True,
+            "host": r.connection_pool.connection_kwargs.get("host"),
+            "port": r.connection_pool.connection_kwargs.get("port"),
+            "redis_version": info.get("redis_version"),
+            "uptime_seconds": info.get("uptime_in_seconds"),
+            "topic_count": len(topics),
+            "topics": topics
+        })
+    except Exception as exc:
+        return jsonify({"connected": False, "error": str(exc)}), 503
+
+
 @app.route("/api/static-data", methods=["GET"])
 def static_data_view():
     return jsonify(constants.STATIC_DATA)
