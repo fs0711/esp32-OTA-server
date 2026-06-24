@@ -37,7 +37,7 @@ def register_scheduled_tasks(scheduler):
     def check_stale_usage_task():
         """Auto-complete usage sessions stuck at is_completed=0 for more than 3 minutes."""
         from esp32OTA.Services.mqtt_client import mqtt_service
-        mqtt_service.check_stale_usage_completions()
+        # mqtt_service.check_stale_usage_completions()
 
     print("All scheduled tasks registered successfully!")
 
